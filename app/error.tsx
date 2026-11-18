@@ -1,11 +1,13 @@
 "use client";
-import Link from "next/link";
-export default function Error({ reset }: { error: Error; reset: () => void }) {
+import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
+export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  useEffect(() => { console.error(error); }, [error]);
   return (
-    <section className="section container text-center">
-      <h1 className="text-3xl font-bold">Something went wrong</h1>
-      <p className="mt-3 text-ink-soft">Please try again, or contact us directly.</p>
-      <div className="mt-8 flex justify-center gap-3"><button onClick={reset} className="btn-primary">Try again</button><Link href="/contact" className="btn-outline">Contact us</Link></div>
+    <section className="container py-24 text-center">
+      <h1 className="text-2xl font-semibold">Something went wrong</h1>
+      <p className="mt-2 text-muted-foreground">Please try again. If the problem continues, contact us on WhatsApp.</p>
+      <Button className="mt-8" onClick={reset}>Try again</Button>
     </section>
   );
 }

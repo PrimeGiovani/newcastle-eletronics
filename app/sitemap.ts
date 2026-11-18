@@ -1,14 +1,16 @@
 import type { MetadataRoute } from "next";
-import { posts } from "@/lib/blog";
-import { categories, products, productUrl } from "@/lib/products";
-import { site } from "@/lib/site";
+import { getAllProductSlugs, getCategories } from "@/lib/catalog";
+import { site } from "@/lib/config";
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const u = (p: string, priority = 0.7) => ({ url: site.url + p, lastModified: new Date(), priority });
+export const revalidate = 3600;
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const [products, categories] = await Promise.all([getAllProductSlugs(), getCategories()]);
+  const now = new Date();
+  const stat = (path: string, priority: number, changeFrequency: "daily" | "weekly" | "monthly" = "weekly") => ({ url: site.url + path, lastModified: now, changeFrequency, priority });
   return [
-    u("/", 1), u("/products", 0.9), u("/solar-solutions", 0.9), u("/about", 0.5), u("/projects", 0.6), u("/blog", 0.6), u("/contact", 0.8),
-    ...categories.map((c) => u(`/products/${c.slug}`, 0.8)),
-    ...products.map((p) => u(productUrl(p), 0.7)),
-    ...posts.map((p) => ({ url: `${site.url}/blog/${p.slug}`, lastModified: new Date(p.date), priority: 0.5 })),
+    stat("/", 1, "daily"), stat("/shop", 0.9, "daily"), stat("/deals", 0.9, "daily"), stat("/solar-solutions", 0.7),
+    stat("/installation", 0.6), stat("/about", 0.4, "monthly"), stat("/contact", 0.5, "monthly"), stat("/track", 0.3, "monthly"),
+    ...categories.map((c) => stat(`/category/${c.slug}`, c.parentSlug ? 0.7 : 0.8, "daily")),
+    ...products.map((p) => ({ url: `${site.url}/product/${p.slug}`, lastModified: new Date(p.updatedAt), changeFrequency: "weekly" as const, priority: 0.8 })),
   ];
 }
