@@ -11,8 +11,16 @@ import { receiptHtml, sendEmail } from "./email";
 export async function confirmPayment(reference: string, trx?: PaystackTransaction) {
   const sb = createAdminClient();
   const tx = trx ?? (await verifyTransaction(reference));
-  const { data: order } = await sb.from("orders").select("id, reference, total, status, user_id, email, customer_name, subtotal, shipping_fee, discount").eq("reference", reference).single();
+  const { data: order } = await sb.from("orders").select("id, reference, total, status, admin_notes, user_id, email, customer_name, subtotal, shipping_fee, discount").eq("reference", reference).single();
   if (!order) return { ok: false as const, reason: "order_not_found" };
+
+  // A late payment (e.g. a delayed bank transfer) can arrive after the daily cleanup cron
+  // auto-cancelled the order. The customer has paid, so re-open the order and fulfil it.
+  if (order.status === "cancelled" && order.admin_notes?.startsWith("Auto-cancelled") && tx.status === "success") {
+    await sb.from("orders").update({ status: "pending", admin_notes: "Re-opened: payment received after auto-cancel" }).eq("id", order.id).eq("status", "cancelled");
+    await sb.from("order_events").insert({ order_id: order.id, status: "pending", note: "Late payment received – order re-opened" });
+    order.status = "pending";
+  }
   if (order.status !== "pending") return { ok: true as const, order, already: true };
 
   if (tx.status !== "success") {

@@ -29,7 +29,7 @@ app/
     reviews/                   Review + photo upload, verified-purchase detection
     coupons/validate/  products/  wishlist/  cart/sync/  account/addresses/
     orders/[ref]/invoice/      Printable HTML invoice
-    cron/cancel-stale-orders/
+    cron/cancel-stale-orders/      Daily cleanup of unpaid orders (Vercel Hobby-compatible)
   sitemap.ts  robots.ts  manifest.ts  opengraph-image.tsx  icon.svg
 components/
   ui/            shadcn-style primitives (Button, Input, Select, Badge, Card, Skeleton…)

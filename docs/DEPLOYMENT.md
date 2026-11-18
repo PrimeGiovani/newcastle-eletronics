@@ -59,7 +59,7 @@ Without these, emails are skipped and logged to the server console.
    openssl rand -hex 32
    ```
 3. Deploy.
-   - `vercel.json` pins the region to `cdg1` (Paris, the lowest latency to Lagos) and runs the hourly cron that cancels orders still unpaid after 24 hours.
+   - `vercel.json` pins the region to `cdg1` (Paris, the lowest latency to Lagos) and runs a **daily** cron (03:00 UTC) that cancels orders still unpaid after 24 hours. Vercel Hobby only allows daily crons; this job does not need to run more often.
    - Optionally, under Settings → Functions, set the default region to match.
 4. Under Settings → Domains, add `newcastleelectronics.com` and `www.newcastleelectronics.com`. Choose `www` as primary and redirect the apex to it.
 

@@ -2,5 +2,5 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "regions": ["cdg1"],
-  "crons": [{ "path": "/api/cron/cancel-stale-orders", "schedule": "0 * * * *" }]
+  "crons": [{ "path": "/api/cron/cancel-stale-orders", "schedule": "0 3 * * *" }]
 }
