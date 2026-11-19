@@ -5,7 +5,7 @@ import { parseFilters, type SP } from "@/lib/search-params";
 import { Filters, SortSelect } from "@/components/shop/filters";
 import { ProductGrid } from "@/components/product/product-card";
 import { Pagination } from "@/components/shop/pagination";
-import { Breadcrumbs } from "@/components/breadcrumbs";
+import { Breadcrumbs } from "@/components/page-breadcrumbs";
 
 export async function generateMetadata({ searchParams }: { searchParams: Promise<SP> }): Promise<Metadata> {
   const sp = await searchParams;

@@ -2,7 +2,7 @@ import { searchProducts, getFlashDeals } from "@/lib/catalog";
 import { buildMetadata } from "@/lib/seo";
 import { ProductGrid } from "@/components/product/product-card";
 import { Countdown } from "@/components/product/countdown";
-import { Breadcrumbs } from "@/components/breadcrumbs";
+import { Breadcrumbs } from "@/components/page-breadcrumbs";
 
 export const revalidate = 300;
 export const metadata = buildMetadata({ title: "Newcastle Deals & Flash Sales", description: "Today's best deals on Newcastle air conditioners, sound systems, refrigerators and kitchen appliances. Limited-time flash sales across Nigeria.", path: "/deals" });

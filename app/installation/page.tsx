@@ -2,7 +2,7 @@ import { BadgeCheck } from "lucide-react";
 import { buildMetadata, faqJsonLd } from "@/lib/seo";
 import { LeadForm } from "@/components/forms/lead-forms";
 import { JsonLd } from "@/components/json-ld";
-import { Breadcrumbs } from "@/components/breadcrumbs";
+import { Breadcrumbs } from "@/components/page-breadcrumbs";
 import { formatNaira } from "@/lib/utils";
 import { INSTALLATION_FEE } from "@/lib/pricing";
 

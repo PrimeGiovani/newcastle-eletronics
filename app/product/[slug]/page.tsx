@@ -6,7 +6,7 @@ import { BadgeCheck, RotateCcw, ShieldCheck, Wrench } from "lucide-react";
 import { getAllProductSlugs, getCategory, getFrequentlyBoughtTogether, getProductBySlug, getRelated, getReviews } from "@/lib/catalog";
 import { buildMetadata, productJsonLd } from "@/lib/seo";
 import { discountPct, formatNaira } from "@/lib/utils";
-import { Breadcrumbs } from "@/components/breadcrumbs";
+import { Breadcrumbs } from "@/components/page-breadcrumbs";
 import { JsonLd } from "@/components/json-ld";
 import { ProductGallery } from "@/components/product/gallery";
 import { PurchasePanel } from "@/components/product/purchase-panel";

@@ -7,7 +7,7 @@ import { ART, IMG } from "@/lib/seed-data";
 import { JsonLd } from "@/components/json-ld";
 import { ProductGrid } from "@/components/product/product-card";
 import { SolarCalculator } from "@/components/solar/calculator";
-import { Breadcrumbs } from "@/components/breadcrumbs";
+import { Breadcrumbs } from "@/components/page-breadcrumbs";
 import { buttonVariants } from "@/components/ui/button";
 
 export const revalidate = 600;

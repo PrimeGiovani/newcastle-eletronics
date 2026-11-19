@@ -6,7 +6,7 @@ import { Suspense } from "react";
 import { getBrands, getCategories, getCategory, getSubcategories, searchProducts } from "@/lib/catalog";
 import { parseFilters, type SP } from "@/lib/search-params";
 import { buildMetadata } from "@/lib/seo";
-import { Breadcrumbs } from "@/components/breadcrumbs";
+import { Breadcrumbs } from "@/components/page-breadcrumbs";
 import { Filters, SortSelect } from "@/components/shop/filters";
 import { ProductGrid } from "@/components/product/product-card";
 import { Pagination } from "@/components/shop/pagination";
