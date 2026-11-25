@@ -22,13 +22,15 @@ export type AddressInput = z.infer<typeof addressSchema>;
 
 export const checkoutSchema = z.object({
   customer: z.object({ email: z.string().trim().toLowerCase().email(), fullName: z.string().trim().min(2).max(100), phone: ngPhone }),
-  shipping: addressSchema,
-  deliveryMethod: z.enum(["standard", "express", "pickup"]),
-  installation: z.boolean().default(false),
+  deliveryMethod: z.enum(["standard", "pickup"]),
+  /** Required for delivery; ignored for showroom pickup */
+  shipping: addressSchema.optional(),
   couponCode: z.string().trim().toUpperCase().max(30).optional(),
   saveAddress: z.boolean().default(false),
   items: z.array(z.object({ productId: z.string().min(1), quantity: z.number().int().min(1).max(50) })).min(1).max(50),
   notes: z.string().max(500).optional(),
+}).superRefine((v, ctx) => {
+  if (v.deliveryMethod === "standard" && !v.shipping) ctx.addIssue({ code: "custom", path: ["shipping"], message: "Please enter a delivery address" });
 });
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
 

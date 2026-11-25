@@ -7,10 +7,10 @@ A premium, mobile-first e-commerce platform for **Newcastle Electronics**, a Nig
 ## Quick start
 ```bash
 npm install
-cp .env.example .env.local      # works with no keys (demo catalogue)
+cp .env.example .env.local      # works with no keys (built-in catalogue)
 npm run dev                     # http://localhost:3000
 ```
-Without any keys, the full storefront works on the built-in demo catalogue: browsing, search, filters, product pages, cart, compare, wishlist, solar calculator and the checkout UI. Add Supabase and Paystack keys to turn on accounts, admin, orders and payments.
+Without any keys, the full storefront works on the built-in catalogue (your 76 products): browsing, search, filters, product pages, cart, compare, wishlist, solar calculator and the checkout UI. Add Supabase and Paystack keys to turn on accounts, admin, orders and payments.
 
 | Command | Purpose |
 |---|---|
@@ -32,9 +32,12 @@ See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for the folder structure, d
 |---|---|
 | Company name, phone, WhatsApp, address, navigation | `lib/config.ts` |
 | Design tokens (white `#FFFFFF`, light gray `#F5F5F7`, text `#1D1D1F`, action blue `#0071E3`), dark mode | `app/globals.css`, `tailwind.config.ts` |
-| Products, categories, prices, stock | **Admin → Products** (live), or `lib/seed-data.ts` (demo) |
-| Shipping zones, fees, delivery days, LGAs | `lib/nigeria.ts` |
-| Installation fee | `lib/pricing.ts` |
+| Products, prices, stock, sale, coming soon | **Admin → Products** (live site), or the product sheet (`data/product-list.csv` → `scripts/import-product-list.py`) – see `data/README.md` |
+| Importing the database | `docs/SUPABASE-IMPORT.md` |
+| Sign-in (email + Google) & data security | `docs/AUTH-SETUP.md` |
+| Turn customer accounts on/off | `NEXT_PUBLIC_CUSTOMER_ACCOUNTS=on/off` (Vercel env var) – default set in `lib/config.ts` |
+| Customer reviews | **Admin → Reviews**, or `data/reviews.csv` |
+| Free-shipping threshold (₦2M), pickup, LGAs | `lib/nigeria.ts` |
 | Homepage sections | `app/page.tsx` |
 | Database | `supabase/migrations/*.sql` |
 

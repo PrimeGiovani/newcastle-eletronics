@@ -110,7 +110,10 @@ create table public.products (
   is_featured       boolean not null default false,
   is_best_seller    boolean not null default false,
   is_new            boolean not null default false,
-  installable       boolean not null default false,
+  installable       boolean not null default false,   -- shows "installation available – contact us" (separate paid service)
+  coming_soon       boolean not null default false,   -- not yet available: "Contact us" instead of Add to cart
+  price_on_request  boolean not null default false,   -- price hidden on the site; cannot be bought online
+  sort_order        int not null default 0,           -- display order (follows the product sheet)
   flash_deal_ends_at timestamptz,
   rating_avg        numeric(3,2) not null default 0,
   rating_count      int not null default 0,
@@ -172,20 +175,6 @@ create or replace function public.touch_updated_at() returns trigger language pl
 begin new.updated_at := now(); return new; end $$;
 create trigger products_touch before update on public.products for each row execute function public.touch_updated_at();
 
--- ───────────── Shipping ─────────────
-create table public.shipping_zones (
-  id        text primary key,               -- lagos | south-west | fct | south | north
-  name      text not null,
-  base_fee  numeric(12,2) not null,
-  min_days  int not null,
-  max_days  int not null,
-  free_over numeric(12,2)
-);
-create table public.shipping_states (
-  state     text primary key,
-  zone_id   text not null references public.shipping_zones(id)
-);
-
 -- ───────────── Coupons & promotions ─────────────
 create type public.coupon_type as enum ('percent', 'fixed');
 create table public.coupons (
@@ -229,7 +218,8 @@ create table public.orders (
   customer_name     text not null,
   phone             text not null,
   shipping_address  jsonb not null,           -- snapshot {fullName, phone, line1, line2, landmark, city, lga, state}
-  delivery_method   public.delivery_method not null default 'standard',
+  delivery_method   public.delivery_method not null default 'standard',   -- standard = delivery, pickup = showroom pickup
+  shipping_to_be_arranged boolean not null default false,  -- delivery under ₦2M: Newcastle contacts the customer to arrange shipping
   installation      boolean not null default false,
   status            public.order_status not null default 'pending',
   subtotal          numeric(12,2) not null,

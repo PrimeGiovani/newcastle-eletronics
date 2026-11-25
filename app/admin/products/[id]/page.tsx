@@ -53,7 +53,7 @@ export default async function EditProduct({ params, searchParams }: { params: Pr
         <div className="space-y-5">
           <div className="space-y-4 rounded-3xl border p-6">
             <div><Label htmlFor="status">Status</Label><Select id="status" name="status" defaultValue={p?.status ?? "draft"}><option value="draft">Draft</option><option value="active">Active (visible)</option><option value="archived">Archived</option></Select></div>
-            {[["is_featured", "Featured on homepage"], ["is_best_seller", "Best seller"], ["is_new", "New arrival"], ["installable", "Offer installation"]].map(([n, l]) => (
+            {[["is_featured", "Featured on homepage"], ["is_best_seller", "Best seller"], ["is_new", "New arrival"], ["coming_soon", "Coming soon (Contact us instead of Add to cart)"], ["price_on_request", "Price on request (hide price)"], ["installable", "Show “installation available” note"]].map(([n, l]) => (
               <label key={n} className="flex items-center gap-2 text-sm"><input type="checkbox" name={n} defaultChecked={p?.[n]} className="h-4 w-4 accent-electric" />{l}</label>
             ))}
             <div><Label htmlFor="flash">Flash deal ends at</Label><Input id="flash" name="flash_deal_ends_at" type="datetime-local" defaultValue={flash} /></div>

@@ -44,6 +44,13 @@ const config: NextConfig = {
       { source: "/category/audio-entertainment", destination: "/category/sound-system", permanent: true },
       { source: "/category/electronics", destination: "/shop", permanent: true },
       { source: "/category/accessories", destination: "/shop", permanent: true },
+      { source: "/category/gas-cookers", destination: "/category/gas-hobs", permanent: true },
+      { source: "/category/3hp-standing-unit", destination: "/category/standing-units", permanent: true },
+      { source: "/category/home-appliances", destination: "/category/kitchen-appliances", permanent: true },
+      { source: "/category/home-audio", destination: "/category/home-theatre", permanent: true },
+      { source: "/category/speakers", destination: "/category/boom-box", permanent: true },
+      { source: "/category/hybrid-inverters", destination: "/category/inverters", permanent: true },
+      { source: "/category/ess-systems", destination: "/category/all-in-one-ess", permanent: true },
     ];
   },
   async headers() {

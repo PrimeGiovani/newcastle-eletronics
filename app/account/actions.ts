@@ -4,12 +4,20 @@ import { z } from "zod";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { addressSchema } from "@/lib/validation";
 
+/**
+ * 7-day swap policy: a delivered order can be swapped within 7 days if the product is unused and in
+ * good condition (no scratches, no dents, fully functioning). Exchanges only – no cash refunds.
+ */
+const SWAP_WINDOW_DAYS = 7;
 export async function requestReturn(fd: FormData) {
   const user = await getUser(); if (!user) return;
-  const p = z.object({ orderId: z.string().uuid(), reason: z.string().min(10).max(1000) }).safeParse(Object.fromEntries(fd));
+  const p = z.object({ orderId: z.string().uuid(), reason: z.string().min(10).max(1000), confirm: z.literal("on") }).safeParse(Object.fromEntries(fd));
   if (!p.success) return;
   const sb = await createClient();
-  const { error } = await sb.from("returns").insert({ order_id: p.data.orderId, reason: p.data.reason }); // RLS: own + delivered only
+  // Enforce the 7-day window from the "delivered" event
+  const { data: ev } = await sb.from("order_events").select("created_at").eq("order_id", p.data.orderId).eq("status", "delivered").order("created_at", { ascending: false }).limit(1).maybeSingle();
+  if (!ev || Date.now() - new Date(ev.created_at).getTime() > SWAP_WINDOW_DAYS * 864e5) return;
+  const { error } = await sb.from("returns").insert({ order_id: p.data.orderId, reason: `[SWAP] ${p.data.reason}` }); // RLS: own + delivered only
   if (!error) revalidatePath("/account");
 }
 

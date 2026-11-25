@@ -1,0 +1,97 @@
+import { NextResponse } from "next/server";
+import { createClient as createJsClient } from "@supabase/supabase-js";
+import { features } from "@/lib/config";
+
+/**
+ * Setup diagnostics: GET /api/health?token=<CRON_SECRET>
+ * Reports which integrations are configured and whether the keys actually work.
+ * Never returns key values – only yes/no, the key mode (test/live) and fix hints.
+ */
+export const dynamic = "force-dynamic";
+
+type Check = { ok: boolean; detail: string; fix?: string };
+
+export async function GET(req: Request) {
+  const token = new URL(req.url).searchParams.get("token");
+  if (!process.env.CRON_SECRET || token !== process.env.CRON_SECRET) {
+    return NextResponse.json({ error: "Add ?token=<your CRON_SECRET> to view diagnostics" }, { status: 401 });
+  }
+  const env = process.env;
+  const checks: Record<string, Check> = {};
+  const has = (k: string) => Boolean(env[k]?.trim());
+
+  // ── Site ──
+  checks.NEXT_PUBLIC_SITE_URL = has("NEXT_PUBLIC_SITE_URL")
+    ? { ok: !env.NEXT_PUBLIC_SITE_URL!.endsWith("/"), detail: env.NEXT_PUBLIC_SITE_URL!, fix: env.NEXT_PUBLIC_SITE_URL!.endsWith("/") ? "Remove the trailing slash" : undefined }
+    : { ok: false, detail: "missing", fix: "Set to your live URL, e.g. https://www.newcastleelectronics.com (Paystack redirects customers back here)" };
+
+  // ── Paystack ──
+  const sk = env.PAYSTACK_SECRET_KEY?.trim() ?? "";
+  const pk = env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY?.trim() ?? "";
+  if (!sk) checks.PAYSTACK_SECRET_KEY = { ok: false, detail: "missing", fix: "Paystack Dashboard → Settings → API Keys & Webhooks → copy the Secret Key" };
+  else if (sk.startsWith("pk_")) checks.PAYSTACK_SECRET_KEY = { ok: false, detail: "this is a PUBLIC key (pk_…)", fix: "Swap them: the secret key starts with sk_test_ or sk_live_" };
+  else if (!/^sk_(test|live)_/.test(sk)) checks.PAYSTACK_SECRET_KEY = { ok: false, detail: "doesn't start with sk_test_ / sk_live_", fix: "Re-copy the Secret Key without spaces or quotes" };
+  else {
+    try {
+      const r = await fetch("https://api.paystack.co/transaction?perPage=1", { headers: { Authorization: `Bearer ${sk}` }, cache: "no-store" });
+      const j = await r.json().catch(() => ({}));
+      checks.PAYSTACK_SECRET_KEY = r.ok
+        ? { ok: true, detail: `valid (${sk.startsWith("sk_live_") ? "LIVE – real money" : "TEST mode"})` }
+        : { ok: false, detail: `Paystack rejected the key: ${j.message ?? r.status}`, fix: "Re-copy the Secret Key from the Paystack dashboard" };
+    } catch { checks.PAYSTACK_SECRET_KEY = { ok: false, detail: "could not reach api.paystack.co" }; }
+  }
+  checks.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY = !pk ? { ok: true, detail: "not set (optional – checkout uses Paystack's hosted page)" }
+    : pk.startsWith("sk_") ? { ok: false, detail: "this is a SECRET key – never put it in a NEXT_PUBLIC_ variable!", fix: "Replace with the pk_… key and ROTATE your secret key in Paystack" }
+    : (pk.startsWith("pk_live_") !== sk.startsWith("sk_live_")) && sk ? { ok: false, detail: "public and secret keys are from different modes (test vs live)", fix: "Use both test keys or both live keys" }
+    : { ok: true, detail: "set" };
+  if (has("PAYSTACK_WEBHOOK_SECRET")) checks.PAYSTACK_WEBHOOK_SECRET = { ok: true, detail: "set but NOT used – Paystack signs webhooks with your Secret Key, so this variable can be deleted" };
+
+  // ── Supabase (orders are saved here before redirecting to Paystack) ──
+  const url = env.NEXT_PUBLIC_SUPABASE_URL?.trim(), anon = env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim(), service = env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  checks.NEXT_PUBLIC_SUPABASE_URL = url ? { ok: /^https:\/\/.+\.supabase\.co\/?$/.test(url), detail: url, fix: /^https:\/\/.+\.supabase\.co\/?$/.test(url) ? undefined : "Should look like https://abcdxyz.supabase.co" } : { ok: false, detail: "missing", fix: "Supabase → Project Settings → API → Project URL" };
+  checks.NEXT_PUBLIC_SUPABASE_ANON_KEY = anon ? { ok: true, detail: "set" } : { ok: false, detail: "missing", fix: "Supabase → Project Settings → API → anon public key" };
+  if (!service) checks.SUPABASE_SERVICE_ROLE_KEY = { ok: false, detail: "missing", fix: "Supabase → Project Settings → API → service_role key (keep secret)" };
+  else if (url) {
+    try {
+      const sb = createJsClient(url, service, { auth: { persistSession: false } });
+      const { error } = await sb.from("orders").select("id", { head: true, count: "exact" });
+      const { count } = await sb.from("products").select("id", { head: true, count: "exact" }).eq("status", "active");
+      checks.SUPABASE_SERVICE_ROLE_KEY = error
+        ? { ok: false, detail: `database error: ${error.message}`, fix: error.message.includes("does not exist") || error.code === "42P01" || error.code === "PGRST205" ? "Run supabase/migrations/0001_schema.sql, 0002_rls.sql and supabase/seed.sql in the Supabase SQL Editor" : "Re-copy the service_role key" }
+        : { ok: true, detail: `connected · ${count ?? 0} active products in database` };
+      if (!error && !count) checks.SUPABASE_SEED = { ok: false, detail: "database has no active products – checkout can't find the items in the cart", fix: "Run supabase/seed.sql in the Supabase SQL Editor (or add products in /admin)" };
+    } catch (e) { checks.SUPABASE_SERVICE_ROLE_KEY = { ok: false, detail: `could not connect: ${(e as Error).message}` }; }
+  }
+
+  // ── Sign-in (Supabase Auth) ──
+  if (url && anon) {
+    try {
+      const r = await fetch(`${url.replace(/\/$/, "")}/auth/v1/settings`, { headers: { apikey: anon }, cache: "no-store" });
+      const st = await r.json() as { external?: Record<string, boolean>; disable_signup?: boolean; mailer_autoconfirm?: boolean };
+      if (!features.customerAccounts) {
+        checks.CUSTOMER_ACCOUNTS = { ok: true, detail: "OFF – guest checkout only; /auth/login is the staff login for /admin" };
+        checks.AUTH_STAFF_LOGIN = st.external?.email
+          ? { ok: true, detail: `email login enabled${st.disable_signup ? " · public sign-up disabled (recommended)" : " · tip: turn OFF 'Allow new users to sign up' and add staff in Supabase → Authentication → Users"}` }
+          : { ok: false, detail: "email provider disabled – staff can't log in to /admin", fix: "Supabase → Authentication → Sign In / Providers → Email → enable" };
+      } else {
+      checks.AUTH_EMAIL_PASSWORD = st.external?.email
+        ? { ok: !st.disable_signup, detail: `enabled${st.mailer_autoconfirm ? " (email confirmation OFF – accounts activate instantly)" : " (customers confirm by email)"}${st.disable_signup ? " – but new sign-ups are DISABLED" : ""}`, fix: st.disable_signup ? "Supabase → Authentication → Sign In / Providers → allow new users to sign up" : undefined }
+        : { ok: false, detail: "email provider disabled", fix: "Supabase → Authentication → Sign In / Providers → Email → enable" };
+      checks.AUTH_GOOGLE = st.external?.google
+        ? { ok: true, detail: "enabled" }
+        : { ok: false, detail: "Google sign-in not enabled", fix: "See docs/AUTH-SETUP.md → Google: create an OAuth client in Google Cloud, then paste Client ID & Secret in Supabase → Authentication → Sign In / Providers → Google" };
+      }
+    } catch { checks.AUTH = { ok: false, detail: "could not read Supabase auth settings" }; }
+  }
+
+  checks.CRON_SECRET = { ok: true, detail: "set" };
+  checks.RESEND_API_KEY = has("RESEND_API_KEY") ? { ok: true, detail: "set – receipts will be emailed" } : { ok: true, detail: "not set (optional) – receipts won't be emailed" };
+
+  const paymentsReady = ["PAYSTACK_SECRET_KEY", "NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY", "NEXT_PUBLIC_SITE_URL"].every((k) => checks[k]?.ok) && checks.SUPABASE_SEED?.ok !== false;
+  return NextResponse.json({
+    paymentsReady,
+    webhookUrl: `${(env.NEXT_PUBLIC_SITE_URL ?? "https://YOUR-DOMAIN").replace(/\/$/, "")}/api/paystack/webhook`,
+    reminder: "After changing environment variables in Vercel you must REDEPLOY for them to take effect.",
+    checks,
+  }, { headers: { "Cache-Control": "no-store" } });
+}

@@ -5,18 +5,18 @@ import { useState } from "react";
 import { Bookmark, Minus, Plus, ShoppingBag, Tag, Trash2 } from "lucide-react";
 import { useStore } from "@/components/cart/store";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Input, Select } from "@/components/ui/input";
-import { STATES, shippingQuote, estimateDateRange, FREE_SHIPPING_THRESHOLD } from "@/lib/nigeria";
+import { Input } from "@/components/ui/input";
+import { shippingQuote, FREE_SHIPPING_THRESHOLD } from "@/lib/nigeria";
+import { site } from "@/lib/config";
 import { formatNaira } from "@/lib/utils";
 
 export default function CartPage() {
   const s = useStore();
-  const [state, setState] = useState("Lagos");
   const [code, setCode] = useState("");
   const [coupon, setCoupon] = useState<{ code: string; discount: number } | null>(null);
   const [couponErr, setCouponErr] = useState("");
-  const ship = shippingQuote(state, s.subtotal - (coupon?.discount ?? 0));
-  const total = s.subtotal - (coupon?.discount ?? 0) + ship.fee;
+  const ship = shippingQuote(s.subtotal);
+  const total = s.subtotal - (coupon?.discount ?? 0);
 
   async function applyCoupon(e: React.FormEvent) {
     e.preventDefault(); setCouponErr("");
@@ -69,18 +69,14 @@ export default function CartPage() {
               <Button type="submit" variant="secondary" size="sm" className="h-10"><Tag />Apply</Button>
             </form>
             {couponErr && <p role="alert" className="text-sm text-destructive">{couponErr}</p>}
-            <div>
-              <label htmlFor="ship-state" className="mb-1.5 block text-sm font-medium">Estimate delivery to</label>
-              <Select id="ship-state" value={state} onChange={(e) => setState(e.target.value)} className="h-10">{STATES.map((x) => <option key={x.name}>{x.name}</option>)}</Select>
-              <p className="mt-1.5 text-xs text-muted-foreground">Arrives {estimateDateRange(ship.days)}</p>
-            </div>
             <dl className="space-y-2 border-t pt-4 text-sm">
               <div className="flex justify-between"><dt>Subtotal ({s.count} items)</dt><dd>{formatNaira(s.subtotal)}</dd></div>
               {coupon && <div className="flex justify-between text-emerald-600"><dt>Discount ({coupon.code})</dt><dd>-{formatNaira(coupon.discount)}</dd></div>}
-              <div className="flex justify-between"><dt>Delivery (standard)</dt><dd>{ship.fee ? formatNaira(ship.fee) : "FREE"}</dd></div>
-              <div className="flex justify-between border-t pt-3 text-base font-semibold"><dt>Estimated total</dt><dd>{formatNaira(total)}</dd></div>
+              <div className="flex justify-between"><dt>Delivery</dt><dd>{ship.free ? "FREE" : "Arranged after purchase"}</dd></div>
+              <div className="flex justify-between"><dt>Showroom pickup</dt><dd>FREE</dd></div>
+              <div className="flex justify-between border-t pt-3 text-base font-semibold"><dt>Total</dt><dd>{formatNaira(total)}</dd></div>
             </dl>
-            {s.subtotal < FREE_SHIPPING_THRESHOLD && <p className="rounded-xl bg-electric-50 p-3 text-xs text-electric dark:bg-electric/10">Add {formatNaira(FREE_SHIPPING_THRESHOLD - s.subtotal)} more for free standard delivery.</p>}
+            {s.subtotal < FREE_SHIPPING_THRESHOLD ? <p className="rounded-xl bg-electric-50 p-3 text-xs text-ink-soft dark:bg-electric/10 dark:text-white/80">Free delivery on orders of {formatNaira(FREE_SHIPPING_THRESHOLD)}+ (add {formatNaira(FREE_SHIPPING_THRESHOLD - s.subtotal)} more). Under that, Newcastle will contact you after purchase to arrange shipping – or pick up free at our showroom in {site.address.city}.</p> : <p className="rounded-xl bg-emerald-50 p-3 text-xs text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">🎉 Your order qualifies for free delivery.</p>}
             <Link href="/checkout" className={buttonVariants({ variant: "accent", size: "lg", className: "w-full" })}>Proceed to checkout</Link>
             <p className="text-center text-xs text-muted-foreground">🔒 Secure payment by Paystack</p>
           </aside>

@@ -22,7 +22,7 @@ const productSchema = z.object({
   price: z.coerce.number().min(0), compare_at_price: z.coerce.number().min(0).nullable(), cost_price: z.coerce.number().min(0).nullable(),
   status: z.enum(["draft", "active", "archived"]), short_description: z.string().max(300), description: z.string().max(10000),
   warranty: z.string().max(200), highlights: z.array(z.string()), specs: z.record(z.string()),
-  is_featured: z.boolean(), is_best_seller: z.boolean(), is_new: z.boolean(), installable: z.boolean(),
+  is_featured: z.boolean(), is_best_seller: z.boolean(), is_new: z.boolean(), installable: z.boolean(), coming_soon: z.boolean(), price_on_request: z.boolean(),
   flash_deal_ends_at: z.string().nullable(), meta_title: z.string().max(70).nullable(), meta_description: z.string().max(160).nullable(),
 });
 
@@ -36,7 +36,7 @@ export async function saveProduct(fd: FormData) {
     status: s("status") || "draft", short_description: s("short_description"), description: s("description"), warranty: s("warranty"),
     highlights: s("highlights").split("\n").map((x) => x.trim()).filter(Boolean),
     specs: Object.fromEntries(s("specs").split("\n").map((l) => l.split(":")).filter((p) => p.length >= 2).map(([k, ...v]) => [k.trim(), v.join(":").trim()])),
-    is_featured: fd.get("is_featured") === "on", is_best_seller: fd.get("is_best_seller") === "on", is_new: fd.get("is_new") === "on", installable: fd.get("installable") === "on",
+    is_featured: fd.get("is_featured") === "on", is_best_seller: fd.get("is_best_seller") === "on", is_new: fd.get("is_new") === "on", installable: fd.get("installable") === "on", coming_soon: fd.get("coming_soon") === "on", price_on_request: fd.get("price_on_request") === "on",
     flash_deal_ends_at: n("flash_deal_ends_at") ? new Date(s("flash_deal_ends_at")).toISOString() : null, meta_title: n("meta_title"), meta_description: n("meta_description"),
   });
   const { id, ...row } = parsed;
@@ -161,4 +161,30 @@ export async function toggleCoupon(fd: FormData) {
   const { sb } = await staff();
   await sb.from("coupons").update({ active: fd.get("active") === "true" }).eq("id", String(fd.get("id")));
   revalidatePath("/admin/marketing");
+}
+
+/* ───────── Reviews ───────── */
+export async function addReview(fd: FormData) {
+  const { sb } = await staff();
+  const p = z.object({
+    productId: z.string().uuid(), author: z.string().trim().min(2).max(80), rating: z.coerce.number().int().min(1).max(5),
+    title: z.string().trim().max(120).optional().default(""), body: z.string().trim().min(5).max(2000), date: z.string().optional(),
+  }).parse(Object.fromEntries(fd));
+  await sb.from("reviews").insert({
+    product_id: p.productId, user_id: null, author_name: p.author, rating: p.rating, title: p.title, body: p.body,
+    verified_purchase: fd.get("verified") === "on", status: "approved", source: "staff",
+    ...(p.date ? { created_at: new Date(p.date).toISOString() } : {}),
+  });
+  revalidatePath("/", "layout");
+}
+export async function setReviewStatus(fd: FormData) {
+  const { sb } = await staff();
+  const status = z.enum(["approved", "pending", "rejected"]).parse(fd.get("status"));
+  await sb.from("reviews").update({ status }).eq("id", String(fd.get("id")));
+  revalidatePath("/", "layout");
+}
+export async function deleteReview(fd: FormData) {
+  const { sb } = await staff(["admin"]);
+  await sb.from("reviews").delete().eq("id", String(fd.get("id")));
+  revalidatePath("/", "layout");
 }

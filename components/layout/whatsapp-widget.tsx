@@ -22,7 +22,7 @@ export function WhatsAppWidget() {
         <div role="dialog" aria-label="WhatsApp chat options" className="w-[310px] animate-fade-up overflow-hidden rounded-[24px] bg-white/95 shadow-lift ring-1 ring-black/5 backdrop-blur-xl dark:bg-card">
           <div className="border-b p-5">
             <p className="font-semibold">Chat with Newcastle</p>
-            <p className="text-xs text-muted-foreground">WhatsApp {site.phone} · replies within minutes</p>
+            <p className="text-xs text-muted-foreground">WhatsApp {site.whatsappLocal} · for calls dial {site.phoneLocal}</p>
           </div>
           <ul className="p-2">
             {options.map(({ intent, label, desc, Icon }) => (

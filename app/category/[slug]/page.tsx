@@ -23,7 +23,7 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const c = await getCategory((await params).slug);
   if (!c) return {};
-  return buildMetadata({ title: `${c.name} – Best Prices in Nigeria`, description: `Buy ${c.name.toLowerCase()} online in Nigeria. ${c.description} Genuine brands, nationwide delivery & installation.`, path: `/category/${c.slug}`, images: [c.image] });
+  return buildMetadata({ title: `${c.name} – Best Prices in Nigeria`, description: `Buy ${c.name.toLowerCase()} online in Nigeria. ${c.description} Made by Newcastle. Free delivery on orders over ₦2M, free showroom pickup in Lagos.`, path: `/category/${c.slug}`, images: [c.image] });
 }
 
 export default async function CategoryPage({ params, searchParams }: Props) {

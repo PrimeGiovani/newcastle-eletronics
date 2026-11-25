@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Track Your Order", description: "Tra
 export const dynamic = "force-dynamic";
 
 const FLOW = ["pending", "paid", "processing", "shipped", "delivered"] as const;
-const LABEL: Record<string, string> = { pending: "Order placed", paid: "Payment confirmed", processing: "Processing", shipped: "Shipped", delivered: "Delivered", cancelled: "Cancelled", refunded: "Refunded", return_requested: "Return requested", returned: "Returned" };
+const LABEL: Record<string, string> = { pending: "Order placed", paid: "Payment confirmed", processing: "Processing", shipped: "Shipped", delivered: "Delivered", cancelled: "Cancelled", refunded: "Refunded", return_requested: "Swap requested", returned: "Swapped" };
 
 type Tracked = { reference: string; status: string; created_at: string; total: number; tracking_number: string | null; carrier: string | null; eta_from: string | null; eta_to: string | null; state: string; items: { name: string; quantity: number; image: string }[]; events: { status: string; note: string; at: string }[] };
 

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { BarChart3, Boxes, FolderTree, Megaphone, Package, ShoppingCart, Users, LifeBuoy, Store } from "lucide-react";
+import { BarChart3, Boxes, FolderTree, Megaphone, Package, ShoppingCart, Star, Users, LifeBuoy, Store } from "lucide-react";
 import { requireRole } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
@@ -9,7 +9,7 @@ export const metadata = { title: "Admin", robots: { index: false, follow: false 
 
 const nav = [
   ["Dashboard", "/admin", BarChart3], ["Orders", "/admin/orders", ShoppingCart], ["Products", "/admin/products", Package],
-  ["Categories", "/admin/categories", FolderTree], ["Inventory", "/admin/inventory", Boxes], ["Customers", "/admin/customers", Users],
+  ["Categories", "/admin/categories", FolderTree], ["Inventory", "/admin/inventory", Boxes], ["Customers", "/admin/customers", Users], ["Reviews", "/admin/reviews", Star],
   ["Support", "/admin/tickets", LifeBuoy], ["Marketing", "/admin/marketing", Megaphone],
 ] as const;
 

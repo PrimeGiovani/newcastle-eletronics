@@ -12,7 +12,11 @@ export function buildMetadata({ title, description, path, images }: { title: str
 
 export const organizationJsonLd = () => ({
   "@context": "https://schema.org", "@type": ["Organization", "ElectronicsStore"], "@id": `${site.url}/#org`, brand: { "@type": "Brand", name: "Newcastle" },
-  name: site.name, url: site.url, logo: `${site.url}/logo.png`, image: `${site.url}/emblem.png`, telephone: site.phone, email: site.email, priceRange: "₦₦",
+  name: site.name, url: site.url, logo: `${site.url}/logo.png`, image: `${site.url}/emblem.png`, telephone: site.phone, email: site.email,
+  contactPoint: [
+    { "@type": "ContactPoint", telephone: site.phone, contactType: "sales", areaServed: "NG", availableLanguage: "en" },
+    { "@type": "ContactPoint", telephone: site.whatsappDisplay, contactType: "customer service", contactOption: "WhatsApp only", areaServed: "NG" },
+  ], priceRange: "₦₦",
   address: { "@type": "PostalAddress", streetAddress: site.address.street, addressLocality: site.address.city, addressRegion: site.address.state, postalCode: site.address.postalCode, addressCountry: "NG" },
   openingHours: "Mo-Sa 08:30-18:30", sameAs: Object.values(site.social),
 });
@@ -27,12 +31,12 @@ export const productJsonLd = (p: Product, reviews: Review[]) => ({
   brand: { "@type": "Brand", name: p.brand }, manufacturer: { "@id": `${site.url}/#org` }, category: p.category,
   ...(p.reviewCount > 0 && { aggregateRating: { "@type": "AggregateRating", ratingValue: p.rating, reviewCount: p.reviewCount } }),
   review: reviews.slice(0, 5).map((r) => ({ "@type": "Review", author: { "@type": "Person", name: r.author }, reviewRating: { "@type": "Rating", ratingValue: r.rating }, reviewBody: r.body, datePublished: r.createdAt })),
-  offers: {
+  ...(!p.priceOnRequest && { offers: {
     "@type": "Offer", url: `${site.url}/product/${p.slug}`, priceCurrency: "NGN", price: p.price, itemCondition: "https://schema.org/NewCondition",
     availability: p.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock", seller: { "@id": `${site.url}/#org` },
     shippingDetails: { "@type": "OfferShippingDetails", shippingDestination: { "@type": "DefinedRegion", addressCountry: "NG" } },
-    hasMerchantReturnPolicy: { "@type": "MerchantReturnPolicy", applicableCountry: "NG", returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow", merchantReturnDays: 7 },
-  },
+    hasMerchantReturnPolicy: { "@type": "MerchantReturnPolicy", applicableCountry: "NG", returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow", merchantReturnDays: 7, refundType: "https://schema.org/ExchangeRefund", itemCondition: "https://schema.org/NewCondition" },
+  } }),
 });
 
 export const breadcrumbJsonLd = (items: { name: string; path: string }[]) => ({

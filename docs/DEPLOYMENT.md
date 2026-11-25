@@ -1,6 +1,6 @@
 # Deployment Guide — Supabase · Paystack · Vercel · Cloudflare
 
-Follow the steps in order. The site runs without any keys (demo catalogue, no checkout). Each section below switches on more of the platform.
+Follow the steps in order. The site runs without any keys (built-in catalogue from your product sheet, no checkout). Each section below switches on more of the platform.
 
 ---
 
@@ -8,7 +8,7 @@ Follow the steps in order. The site runs without any keys (demo catalogue, no ch
 
 1. Create a project at <https://supabase.com>. Choose a region close to Nigeria (**eu-west-2 London** or **eu-central-1 Frankfurt**).
 2. **Run the migrations** (in order):
-   - SQL Editor: paste and run `supabase/migrations/0001_schema.sql`, then `0002_rls.sql`, then `supabase/seed.sql` (demo catalogue, shipping zones and coupons).
+   - Follow **[SUPABASE-IMPORT.md](SUPABASE-IMPORT.md)**: run `0001_schema.sql`, then `0002_rls.sql`, then `seed.sql` (your 76 products) in the SQL Editor.
    - Or use the CLI: `npx supabase link --project-ref <ref> && npx supabase db push`, then run `seed.sql` in the editor.
 3. **Copy your keys** from Project Settings → API into `.env.local` and Vercel:
    - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
@@ -79,6 +79,17 @@ Without these, emails are skipped and logged to the server console.
    - Bot Fight Mode on
    - Rate limiting rule: `/api/checkout` and `/api/leads` ≤ 20 requests per minute per IP
 5. Email DNS: add the Resend SPF/DKIM records, plus `_dmarc TXT "v=DMARC1; p=quarantine"`.
+
+## Checking your setup
+Open `https://YOUR-DOMAIN/api/health?token=YOUR_CRON_SECRET`. It reports, for every integration:
+- whether the variable is set
+- whether the key actually works (Paystack and Supabase are contacted live)
+- test or live mode
+- exactly how to fix anything that's wrong
+
+Key values are never shown. `"paymentsReady": true` means checkout will work.
+
+> Paystack has **no separate webhook secret**. Webhooks are signed with your `PAYSTACK_SECRET_KEY`, so you don't need a `PAYSTACK_WEBHOOK_SECRET` variable.
 
 ## 6. Go-live checklist
 

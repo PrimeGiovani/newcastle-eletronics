@@ -41,8 +41,8 @@ export default function ComparePage() {
                       <button onClick={() => toggleCompare(toCartProduct(p))} className="absolute right-0 top-0 rounded-full bg-background p-1 shadow" aria-label={`Remove ${p.name}`}><X className="h-4 w-4" /></button>
                       <Image src={p.images[0]} alt="" width={160} height={160} className="aspect-square w-full max-w-[160px] rounded-2xl object-cover" />
                       <Link href={`/product/${p.slug}`} className="mt-3 block font-semibold hover:text-electric">{p.name}</Link>
-                      <p className="mt-1 text-lg font-semibold">{formatNaira(p.price)}</p>
-                      <Button size="sm" className="mt-3" disabled={!p.stock} onClick={() => add(toCartProduct(p))}>Add to cart</Button>
+                      <p className="mt-1 text-lg font-semibold">{p.priceOnRequest ? "Price on request" : formatNaira(p.price)}</p>
+                      {p.comingSoon || p.priceOnRequest ? <Link href={`/product/${p.slug}`} className="mt-3 inline-block text-sm font-medium text-electric">{p.comingSoon ? "Coming soon – contact us" : "Contact us"} ›</Link> : <Button size="sm" className="mt-3" disabled={!p.stock} onClick={() => add(toCartProduct(p))}>Add to cart</Button>}
                     </div>
                   </th>
                 ))}
@@ -51,7 +51,7 @@ export default function ComparePage() {
             <tbody className="divide-y">
               <Row label="Brand" vals={items.map((p) => p.brand)} />
               <tr><th scope="row" className="p-4 text-left font-medium text-muted-foreground">Rating</th>{items.map((p) => <td key={p.id} className="p-4"><Rating value={p.rating} count={p.reviewCount} /></td>)}</tr>
-              <Row label="Availability" vals={items.map((p) => (p.stock ? `In stock (${p.stock})` : "Out of stock"))} />
+              <Row label="Availability" vals={items.map((p) => (p.comingSoon ? "Coming soon" : p.stock ? `In stock (${p.stock})` : "Out of stock"))} />
               <Row label="Warranty" vals={items.map((p) => p.warranty)} />
               {specKeys.map((k) => <Row key={k} label={k} vals={items.map((p) => p.specs[k] ?? "—")} />)}
             </tbody>

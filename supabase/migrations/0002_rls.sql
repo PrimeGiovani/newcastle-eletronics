@@ -4,7 +4,7 @@
 -- ════════════════════════════════════════════════════════════════════
 do $$ declare t text; begin
   foreach t in array array['profiles','addresses','categories','brands','products','product_images','inventory','inventory_movements',
-    'shipping_zones','shipping_states','coupons','promotions','orders','order_items','order_events','payments','payment_methods','returns',
+    'coupons','promotions','orders','order_items','order_events','payments','payment_methods','returns',
     'reviews','wishlists','carts','support_tickets','ticket_messages','leads','solar_consultations','newsletter_subscribers']
   loop execute format('alter table public.%I enable row level security', t); end loop;
 end $$;
@@ -22,8 +22,6 @@ create policy "public brands"     on public.brands     for select using (true);
 create policy "public products"   on public.products   for select using (status = 'active' or public.is_staff());
 create policy "public images"     on public.product_images for select using (true);
 create policy "public inventory"  on public.inventory  for select using (true);
-create policy "public zones"      on public.shipping_zones  for select using (true);
-create policy "public states"     on public.shipping_states for select using (true);
 create policy "public promos"     on public.promotions for select using (active and (ends_at is null or ends_at > now()));
 create policy "public reviews"    on public.reviews for select using (status = 'approved' or user_id = auth.uid() or public.is_staff());
 
@@ -35,7 +33,6 @@ create policy "staff inventory"  on public.inventory      for all using (public.
 create policy "staff movements"  on public.inventory_movements for select using (public.is_staff());
 create policy "staff coupons"    on public.coupons        for all using (public.is_staff()) with check (public.is_staff());
 create policy "staff promos"     on public.promotions     for all using (public.is_staff()) with check (public.is_staff());
-create policy "staff zones"      on public.shipping_zones for all using (public.is_admin()) with check (public.is_admin());
 
 -- Orders: customers read their own; all writes go through the server (service role) or staff
 create policy "own orders"        on public.orders       for select using (user_id = auth.uid() or public.is_staff());

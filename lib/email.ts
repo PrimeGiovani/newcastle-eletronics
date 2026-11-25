@@ -24,5 +24,5 @@ export function receiptHtml(o: ReceiptOrder) {
   ${o.discount ? `<tr><td>Discount</td><td align="right">-${formatNaira(o.discount)}</td></tr>` : ""}
   <tr><td style="font-weight:bold;padding-top:8px">Total</td><td align="right" style="font-weight:bold">${formatNaira(o.total)}</td></tr></table>
   <p><a href="${site.url}/track?ref=${encodeURIComponent(o.reference)}" style="color:#1E6BFF">Track your order</a> · <a href="${site.url}/api/orders/${encodeURIComponent(o.reference)}/invoice" style="color:#1E6BFF">Download invoice</a></p>
-  <p style="color:#666;font-size:12px">${site.name} · ${site.phone} · ${site.email}</p></div>`;
+  <p style="color:#666;font-size:12px">${site.name} · Call ${site.phone} · WhatsApp ${site.whatsappDisplay} · ${site.email}</p></div>`;
 }

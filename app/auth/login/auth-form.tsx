@@ -8,11 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { NG_PHONE_PATTERN, normalizeNgPhone } from "@/lib/nigeria";
 import { cn } from "@/lib/utils";
+import { features } from "@/lib/config";
 
 export function AuthForm() {
   const router = useRouter();
   const sp = useSearchParams();
-  const next = sp.get("next")?.startsWith("/") ? sp.get("next")! : "/account"; // prevent open redirects
+  const staffOnly = !features.customerAccounts;
+  const next = sp.get("next")?.startsWith("/") && !sp.get("next")!.startsWith("//") ? sp.get("next")! : staffOnly ? "/admin" : "/account"; // prevent open redirects
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(sp.get("error") ?? "");
@@ -30,13 +32,15 @@ export function AuthForm() {
       if (error) { setError(error.message === "Invalid login credentials" ? "Incorrect email or password." : error.message); setLoading(false); return; }
       router.replace(next); router.refresh();
     } else {
-      const { error } = await sb.auth.signUp({
+      const { data, error } = await sb.auth.signUp({
         email, password,
         options: { emailRedirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent(next)}`, data: { full_name: f.get("fullName"), phone: normalizeNgPhone(String(f.get("phone"))) } },
       });
       setLoading(false);
-      if (error) { setError(error.message); return; }
-      setInfo("Check your email to confirm your account, then sign in.");
+      if (error) { setError(/registered|exists/i.test(error.message) ? "An account with this email already exists – please sign in or reset your password." : error.message); return; }
+      if (data.session) { router.replace(next); router.refresh(); return; }                       // email confirmation turned off
+      if (data.user && data.user.identities?.length === 0) { setError("An account with this email already exists – please sign in or reset your password."); return; }
+      setInfo("Almost done! We've emailed you a confirmation link. Click it to activate your account.");
     }
   }
 
@@ -48,10 +52,11 @@ export function AuthForm() {
 
   return (
     <div className="w-full max-w-md rounded-[28px] bg-white shadow-card dark:bg-card p-6 shadow-soft sm:p-10">
-      <h1 className="font-display text-2xl font-semibold">{mode === "signin" ? "Welcome back" : "Create your account"}</h1>
-      <p className="mt-1 text-sm text-muted-foreground">{mode === "signin" ? "Sign in to track orders, save addresses and checkout faster." : "Join for faster checkout, order history and exclusive deals."}</p>
+      <h1 className="font-display text-2xl font-semibold">{staffOnly ? "Staff sign in" : mode === "signin" ? "Welcome back" : "Create your account"}</h1>
+      <p className="mt-1 text-sm text-muted-foreground">{staffOnly ? "For Newcastle Electronics staff only. Customers don't need an account – just shop and check out as a guest." : mode === "signin" ? "Sign in to track orders, save addresses and checkout faster." : "Join for faster checkout, order history and exclusive deals."}</p>
       {!configured && <p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">Authentication requires Supabase. Add your keys to <code>.env.local</code>.</p>}
 
+      {!staffOnly && <>
       <div className="mt-6 grid grid-cols-2 rounded-full bg-muted p-1 text-sm font-semibold" role="tablist">
         {(["signin", "signup"] as const).map((m) => <button key={m} role="tab" aria-selected={mode === m} onClick={() => setMode(m)} className={cn("rounded-full py-2", mode === m && "bg-background shadow")}>{m === "signin" ? "Sign in" : "Register"}</button>)}
       </div>
@@ -61,6 +66,8 @@ export function AuthForm() {
         Continue with Google
       </Button>
       <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-border" />or with email<span className="h-px flex-1 bg-border" /></div>
+      </>}
+      {staffOnly && <div className="mt-6" />}
 
       <form onSubmit={submit} className="space-y-4">
         {mode === "signup" && <>
@@ -68,10 +75,11 @@ export function AuthForm() {
           <Field label="Phone number"><Input name="phone" type="tel" required pattern={NG_PHONE_PATTERN} autoComplete="tel" className="mt-1.5" /></Field>
         </>}
         <Field label="Email"><Input name="email" type="email" required autoComplete="email" className="mt-1.5" /></Field>
-        <Field label="Password" hint={mode === "signup" ? "At least 8 characters" : undefined}><Input name="password" type="password" required minLength={mode === "signup" ? 8 : 1} autoComplete={mode === "signin" ? "current-password" : "new-password"} className="mt-1.5" /></Field>
+        <Field label="Password" hint={mode === "signup" ? "At least 8 characters, with letters and numbers" : undefined}><Input name="password" type="password" required minLength={mode === "signup" ? 8 : 1} autoComplete={mode === "signin" ? "current-password" : "new-password"} className="mt-1.5" /></Field>
         {mode === "signin" && <Link href="/auth/reset" className="block text-right text-sm font-medium text-electric">Forgot password?</Link>}
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
         {info && <p role="status" className="text-sm text-emerald-600">{info}</p>}
+        {mode === "signup" && <p className="text-xs text-muted-foreground">By creating an account you agree to our <Link href="/privacy" className="underline">Privacy Policy</Link>. We use your details only to process orders and support you.</p>}
         <Button type="submit" size="lg" className="w-full" disabled={loading || !configured}>{loading && <Loader2 className="animate-spin" />}{mode === "signin" ? "Sign in" : "Create account"}</Button>
       </form>
     </div>

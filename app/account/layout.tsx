@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/supabase/server";
+import { features } from "@/lib/config";
 import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
@@ -9,6 +10,7 @@ export const metadata = { robots: { index: false } };
 const links = [["Orders", "/account"], ["Wishlist", "/wishlist"], ["Addresses", "/account/addresses"], ["Payment methods", "/account/payment-methods"], ["Change password", "/auth/update-password"]];
 
 export default async function AccountLayout({ children }: { children: React.ReactNode }) {
+  if (!features.customerAccounts) redirect("/track");
   const me = await getProfile();
   if (!me) redirect("/auth/login?next=/account");
   return (

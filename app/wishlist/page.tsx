@@ -16,12 +16,12 @@ export default function WishlistPage() {
         {wishlist.map((p) => (
           <li key={p.id} className="rounded-[28px] bg-white shadow-card dark:bg-card p-4">
             <Link href={`/product/${p.slug}`}><Image src={p.image} alt="" width={300} height={300} className="aspect-square w-full rounded-2xl object-cover" /><p className="mt-3 line-clamp-2 text-sm font-semibold">{p.name}</p></Link>
-            <p className="font-semibold">{formatNaira(p.price)}</p>
-            <div className="mt-3 flex flex-wrap gap-2"><Button size="sm" disabled={!p.stock} onClick={() => add(p)}>Add to cart</Button><Button size="sm" variant="ghost" onClick={() => toggleWishlist(p)}>Remove</Button></div>
+            <p className="font-semibold">{p.priceOnRequest ? "Price on request" : formatNaira(p.price)}</p>
+            <div className="mt-3 flex flex-wrap gap-2">{p.comingSoon || p.priceOnRequest ? <Link href={`/product/${p.slug}`} className="text-sm font-medium text-electric">{p.comingSoon ? "Coming soon – contact us" : "Contact us"} ›</Link> : <Button size="sm" disabled={!p.stock} onClick={() => add(p)}>Add to cart</Button>}<Button size="sm" variant="ghost" onClick={() => toggleWishlist(p)}>Remove</Button></div>
           </li>
         ))}
       </ul>
-      <p className="mt-8 text-sm text-muted-foreground">Signed-in customers' wishlists are also saved to their account.</p>
+      <p className="mt-8 text-sm text-muted-foreground">Your wishlist is saved on this device.</p>
     </section>
   );
 }

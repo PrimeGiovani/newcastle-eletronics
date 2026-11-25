@@ -2,7 +2,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 /** Minimal product snapshot kept client-side. Prices are re-validated on the server at checkout. */
-export type CartProduct = { id: string; slug: string; name: string; price: number; image: string; brand: string; stock: number; installable: boolean };
+export type CartProduct = { id: string; slug: string; name: string; price: number; image: string; brand: string; stock: number; installable: boolean; comingSoon?: boolean; priceOnRequest?: boolean };
+/** Coming-soon and price-on-request items are enquiry-only (Contact us), never added to the cart. */
+export const canBuy = (p: Pick<CartProduct, "comingSoon" | "priceOnRequest" | "price" | "stock">) => !p.comingSoon && !p.priceOnRequest && p.price > 0 && p.stock > 0;
 export type CartLine = CartProduct & { quantity: number };
 
 type Store = {
@@ -30,7 +32,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       const s = JSON.parse(localStorage.getItem(KEY) ?? "{}");
-      setCart(s.cart ?? []); setSaved(s.saved ?? []); setWishlist(s.wishlist ?? []); setCompare(s.compare ?? []);
+      setCart((s.cart ?? []).filter((l: CartLine) => !l.comingSoon && !l.priceOnRequest)); setSaved(s.saved ?? []); setWishlist(s.wishlist ?? []); setCompare(s.compare ?? []);
     } catch { /* ignore corrupt storage */ }
     setReady(true);
   }, []);
@@ -40,6 +42,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const clamp = (q: number, stock: number) => Math.max(1, Math.min(q, Math.max(stock, 1), 50));
 
   const add = useCallback((p: CartProduct, qty = 1) => {
+    if (p.comingSoon || p.priceOnRequest) { notify(p.comingSoon ? "Coming soon – contact us to enquire or book ahead" : "Contact us for the price of this product"); return; }
     setCart((c) => {
       const ex = c.find((l) => l.id === p.id);
       return ex ? c.map((l) => (l.id === p.id ? { ...l, ...p, quantity: clamp(l.quantity + qty, p.stock) } : l)) : [...c, { ...p, quantity: clamp(qty, p.stock) }];

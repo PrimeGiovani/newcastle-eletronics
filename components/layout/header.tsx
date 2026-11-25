@@ -1,10 +1,10 @@
 "use client";
-import Image from "next/image";
+import { Logo } from "@/components/brand/logo";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { GitCompareArrows, Heart, Menu, Search, ShoppingBag, User, X, Phone, Truck } from "lucide-react";
-import { mainNav, site } from "@/lib/config";
+import { GitCompareArrows, Heart, Menu, MessageCircle, Search, ShoppingBag, User, X, Phone, Truck } from "lucide-react";
+import { features, mainNav, site, waLink } from "@/lib/config";
 import { useStore } from "@/components/cart/store";
 import { ThemeToggle } from "@/components/theme";
 import { cn } from "@/lib/utils";
@@ -27,7 +27,10 @@ export function Header() {
       <div className="bg-cloud text-[12px] text-ink-soft dark:bg-[#161617] dark:text-white/70">
         <div className="container flex h-9 items-center justify-center gap-4 sm:justify-between">
           <p className="flex items-center gap-2"><Truck className="h-3.5 w-3.5" /><span className="hidden sm:inline">Designed & manufactured by Newcastle · </span>Delivery across Nigeria</p>
-          <a href={`tel:${site.phone.replace(/\s/g, "")}`} className="hidden items-center gap-1.5 hover:text-ink sm:flex dark:hover:text-white"><Phone className="h-3.5 w-3.5" />Call or WhatsApp {site.phone}</a>
+          <p className="hidden items-center gap-4 sm:flex">
+            <a href={site.phoneHref} className="flex items-center gap-1.5 hover:text-ink dark:hover:text-white"><Phone className="h-3.5 w-3.5" />Call {site.phoneLocal}</a>
+            <a href={waLink("sales")} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:text-ink dark:hover:text-white"><MessageCircle className="h-3.5 w-3.5" />WhatsApp {site.whatsappLocal}</a>
+          </p>
         </div>
       </div>
       <header className={cn("sticky top-0 z-40 bg-white/80 backdrop-blur-2xl backdrop-saturate-150 transition-[border-color,box-shadow] duration-300 dark:bg-black/75", scrolled ? "border-b border-black/5 dark:border-white/10" : "border-b border-transparent")}>
@@ -35,8 +38,7 @@ export function Header() {
         <div className="container flex h-16 items-center gap-3 lg:h-[72px]">
           <button className="-ml-2 grid h-10 w-10 place-items-center rounded-full hover:bg-muted lg:hidden" aria-label="Open menu" aria-expanded={open} onClick={() => setOpen(true)}><Menu className="h-5 w-5" /></button>
           <Link href="/" className="flex shrink-0 items-center" aria-label="Newcastle Electronics – home">
-            <Image src="/logo.png" alt="Newcastle" width={877} height={160} priority className="h-7 w-auto sm:h-9 dark:hidden" />
-            <Image src="/logo-white.png" alt="Newcastle" width={877} height={160} priority className="hidden h-7 w-auto sm:h-9 dark:block" />
+            <Logo priority />
           </Link>
           <form onSubmit={submit} role="search" className="relative mx-auto hidden w-full max-w-xl md:block">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -51,7 +53,7 @@ export function Header() {
             <Link href="/wishlist" className="relative hidden h-10 w-10 place-items-center rounded-full hover:bg-muted sm:grid" aria-label={`Wishlist (${wishlist.length})`}>
               <Heart className="h-5 w-5" />{ready && wishlist.length > 0 && <Dot n={wishlist.length} />}
             </Link>
-            <Link href="/account" className="grid h-10 w-10 place-items-center rounded-full hover:bg-muted" aria-label="My account"><User className="h-5 w-5" /></Link>
+            {features.customerAccounts && <Link href="/account" className="grid h-10 w-10 place-items-center rounded-full hover:bg-muted" aria-label="My account"><User className="h-5 w-5" /></Link>}
             <Link href="/cart" className="relative grid h-10 w-10 place-items-center rounded-full hover:bg-muted" aria-label={`Cart (${count} items)`}>
               <ShoppingBag className="h-5 w-5" />{ready && count > 0 && <Dot n={count} />}
             </Link>

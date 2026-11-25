@@ -6,6 +6,7 @@ import { FileText, GitCompareArrows, Heart, Minus, Plus, Share2, ShoppingBag, Za
 import { Button } from "@/components/ui/button";
 import { useStore, type CartProduct } from "@/components/cart/store";
 import { waLink } from "@/lib/config";
+import { EnquireButtons, enquiryText } from "./enquire";
 import { cn } from "@/lib/utils";
 
 export function PurchasePanel({ product }: { product: CartProduct }) {
@@ -15,11 +16,26 @@ export function PurchasePanel({ product }: { product: CartProduct }) {
   const out = product.stock === 0;
   const max = Math.min(product.stock, 50);
 
+  const enquiryOnly = product.comingSoon || product.priceOnRequest;
   const share = async () => {
     const url = window.location.href;
     if (navigator.share) { try { await navigator.share({ title: product.name, url }); } catch { /* cancelled */ } }
     else { await navigator.clipboard.writeText(url); notify("Link copied to clipboard"); }
   };
+
+  if (enquiryOnly) return (
+    <div className="space-y-4">
+      <EnquireButtons name={product.name} comingSoon={product.comingSoon} />
+      <div className="grid grid-cols-3 gap-2">
+        <Button variant="outline" size="sm" onClick={() => toggleWishlist(product)} aria-pressed={inWishlist(product.id)}><Heart className={cn(inWishlist(product.id) && "fill-flame text-flame")} />Wishlist</Button>
+        <Button variant="outline" size="sm" onClick={() => toggleCompare(product)} aria-pressed={inCompare(product.id)}><GitCompareArrows />Compare</Button>
+        <Button variant="outline" size="sm" onClick={share}><Share2 />Share</Button>
+      </div>
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 p-3 pr-20 backdrop-blur lg:hidden">
+        <a href={waLink("product", enquiryText(product.name, product.comingSoon))} target="_blank" rel="noopener noreferrer" className="flex h-11 items-center justify-center rounded-full bg-electric font-medium text-white">Contact us</a>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-4">

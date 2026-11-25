@@ -1,8 +1,6 @@
 import type { Coupon, Product } from "./types.ts";
 import { shippingQuote, type DeliveryMethod } from "./nigeria.ts";
 
-export const INSTALLATION_FEE = 25000; // per installable unit
-
 export function couponDiscount(c: Coupon | null, subtotal: number): { discount: number; error?: string } {
   if (!c) return { discount: 0 };
   if (!c.active || (c.expiresAt && new Date(c.expiresAt) < new Date())) return { discount: 0, error: "This coupon has expired" };
@@ -12,15 +10,18 @@ export function couponDiscount(c: Coupon | null, subtotal: number): { discount: 
   return { discount: Math.min(d, subtotal) };
 }
 
-/** Authoritative server-side totals. Never trust client prices. */
-export function computeTotals(args: {
-  lines: { product: Product; quantity: number }[]; state: string; method: DeliveryMethod; installation: boolean; coupon: Coupon | null;
-}) {
+/** A product can be bought online only if it's available and has a public price. */
+export const isPurchasable = (p: Pick<Product, "comingSoon" | "priceOnRequest" | "price">) => !p.comingSoon && !p.priceOnRequest && p.price > 0;
+
+/**
+ * Authoritative server-side totals. Never trust client prices.
+ * Installation is a separate paid service arranged with Newcastle after purchase – not charged here.
+ */
+export function computeTotals(args: { lines: { product: Product; quantity: number }[]; method: DeliveryMethod; coupon: Coupon | null }) {
   const subtotal = args.lines.reduce((s, l) => s + l.product.price * l.quantity, 0);
   const { discount, error: couponError } = couponDiscount(args.coupon, subtotal);
-  const ship = shippingQuote(args.state, subtotal - discount, args.method);
-  const installUnits = args.installation ? args.lines.filter((l) => l.product.installable).reduce((s, l) => s + l.quantity, 0) : 0;
-  const installationFee = installUnits * INSTALLATION_FEE;
-  const total = subtotal - discount + ship.fee + installationFee;
-  return { subtotal, discount, couponError, shippingFee: ship.fee, deliveryDays: ship.days, installationFee, total };
+  // Free-shipping threshold is checked on the goods value before any coupon discount
+  const ship = shippingQuote(subtotal, args.method);
+  const total = subtotal - discount + ship.fee;
+  return { subtotal, discount, couponError, shippingFee: ship.fee, freeShipping: ship.free, shippingToBeArranged: ship.arrangeLater, total };
 }

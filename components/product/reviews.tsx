@@ -7,15 +7,16 @@ import { Rating } from "./rating";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { features } from "@/lib/config";
 
 export function Reviews({ productId, reviews, rating, count }: { productId: string; reviews: Review[]; rating: number; count: number }) {
   const dist = [5, 4, 3, 2, 1].map((s) => ({ s, n: reviews.filter((r) => r.rating === s).length }));
   return (
     <div className="grid gap-10 lg:grid-cols-[320px_1fr]">
       <div>
-        <p className="font-display text-5xl font-semibold">{rating.toFixed(1)}</p>
+        <p className="text-5xl font-semibold">{count ? rating.toFixed(1) : "–"}</p>
         <Rating value={rating} size="md" className="mt-2" />
-        <p className="mt-1 text-sm text-muted-foreground">Based on {count} reviews</p>
+        <p className="mt-1 text-sm text-muted-foreground">{count ? `Based on ${count} reviews` : "No reviews yet"}</p>
         <ul className="mt-5 space-y-1.5">
           {dist.map(({ s, n }) => (
             <li key={s} className="flex items-center gap-2 text-sm">
@@ -56,6 +57,8 @@ function ReviewForm({ productId }: { productId: string }) {
   const [status, setStatus] = useState<"idle" | "loading" | "done">("idle");
   const [error, setError] = useState("");
   const [files, setFiles] = useState<File[]>([]);
+  const [pending, setPending] = useState(false);
+  const guest = !features.customerAccounts;
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault(); setError(""); setStatus("loading");
@@ -64,11 +67,12 @@ function ReviewForm({ productId }: { productId: string }) {
     fd.delete("photos"); files.forEach((f) => fd.append("photos", f));
     const res = await fetch("/api/reviews", { method: "POST", body: fd });
     const json = await res.json().catch(() => ({}));
+    if (res.status === 401) { window.location.href = `/auth/login?next=${encodeURIComponent(window.location.pathname + "#reviews")}`; return; }
     if (!res.ok) { setError(json.error ?? "Could not submit review"); setStatus("idle"); return; }
-    setStatus("done");
+    setPending(Boolean(json.pending)); setStatus("done");
   }
 
-  if (status === "done") return <p role="status" className="mt-6 rounded-2xl bg-emerald-50 p-4 text-sm font-medium text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">Thanks! Your review has been published.</p>;
+  if (status === "done") return <p role="status" className="mt-6 rounded-2xl bg-emerald-50 p-4 text-sm font-medium text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">{pending ? "Thank you! Your review has been received and will appear once our team has checked it." : "Thanks! Your review has been published."}</p>;
   if (!open) return <Button variant="outline" className="mt-6 w-full" onClick={() => setOpen(true)}>Write a review</Button>;
   return (
     <form onSubmit={submit} className="mt-6 space-y-3">
@@ -81,6 +85,11 @@ function ReviewForm({ productId }: { productId: string }) {
           ))}
         </div>
       </fieldset>
+      {guest && <>
+        <Field label="Your name *" hint="Shown as e.g. “Adaeze N.”"><Input name="name" required minLength={2} maxLength={80} autoComplete="name" className="mt-1.5" /></Field>
+        <Field label="Email *" hint="Not published. Used to confirm a verified purchase."><Input name="email" type="email" required autoComplete="email" className="mt-1.5" /></Field>
+        <input type="text" name="website" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden="true" />
+      </>}
       <Field label="Title"><Input name="title" maxLength={120} className="mt-1.5" /></Field>
       <Field label="Review *"><Textarea name="body" required minLength={10} maxLength={2000} className="mt-1.5" /></Field>
       <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed p-3 text-sm text-muted-foreground hover:bg-muted">
@@ -89,7 +98,7 @@ function ReviewForm({ productId }: { productId: string }) {
       </label>
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
       <Button type="submit" className="w-full" disabled={status === "loading"}>{status === "loading" && <Loader2 className="animate-spin" />}Submit review</Button>
-      <p className="text-xs text-muted-foreground">You must be signed in. Reviews from customers who bought this item get a “Verified purchase” badge.</p>
+      <p className="text-xs text-muted-foreground">{guest ? "Reviews are published after a quick check by our team. If you bought this item on our website with the same email, your review gets a “Verified purchase” badge." : "You'll be asked to sign in or register (email or Google). Reviews from customers who bought this item on our website get a “Verified purchase” badge."}</p>
     </form>
   );
 }

@@ -28,11 +28,15 @@ export default async function AdminOrder({ params }: { params: Promise<{ id: str
           </Table>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="rounded-3xl border p-5 text-sm"><p className="font-semibold">Customer</p>{o.customer_name}<br />{o.email}<br />{o.phone}<br /><span className="text-muted-foreground">{o.user_id ? "Registered" : "Guest"} checkout</span></div>
-            <div className="rounded-3xl border p-5 text-sm"><p className="font-semibold">Ship to ({o.delivery_method}{o.installation ? " + installation" : ""})</p>{a.fullName} · {a.phone}<br />{a.line1} {a.line2}<br />{a.landmark && <>Landmark: {a.landmark}<br /></>}{a.city}, {a.lga}, {a.state}</div>
+            <div className="rounded-3xl border p-5 text-sm">{a.pickup
+              ? <><p className="font-semibold">Showroom pickup</p>{a.location}<br /><span className="text-muted-foreground">Call the customer when the order is ready.</span></>
+              : <><p className="font-semibold">Deliver to</p>{a.fullName} · {a.phone}<br />{a.line1} {a.line2}<br />{a.landmark && <>Landmark: {a.landmark}<br /></>}{a.city}, {a.lga}, {a.state}</>}
+              {o.shipping_to_be_arranged && <p className="mt-3 rounded-xl bg-amber-50 p-3 font-medium text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">Shipping to be arranged: order is under ₦2,000,000. Contact the customer to agree delivery and any shipping cost.</p>}
+            </div>
           </div>
           {o.notes && <p className="rounded-2xl bg-muted p-4 text-sm"><b>Customer note:</b> {o.notes}</p>}
-          <dl className="grid grid-cols-2 gap-2 rounded-3xl border p-5 text-sm sm:grid-cols-5">
-            {[["Subtotal", o.subtotal], ["Discount", o.discount], ["Delivery", o.shipping_fee], ["Installation", o.installation_fee], ["Total", o.total]].map(([k, v]) => <div key={k as string}><dt className="text-muted-foreground">{k as string}</dt><dd className="font-semibold">{formatNaira(Number(v))}</dd></div>)}
+          <dl className="grid grid-cols-2 gap-2 rounded-3xl border p-5 text-sm sm:grid-cols-4">
+            {[["Subtotal", o.subtotal], ["Discount", o.discount], ["Delivery", o.shipping_fee], ["Total paid", o.total]].map(([k, v]) => <div key={k as string}><dt className="text-muted-foreground">{k as string}</dt><dd className="font-semibold">{formatNaira(Number(v))}</dd></div>)}
           </dl>
           <div>
             <h2 className="mb-3 font-semibold">Payments</h2>
@@ -43,14 +47,14 @@ export default async function AdminOrder({ params }: { params: Promise<{ id: str
           </div>
           {o.returns.length > 0 && (
             <div>
-              <h2 className="mb-3 font-semibold">Returns</h2>
+              <h2 className="mb-3 font-semibold">Swap requests (7-day swap policy)</h2>
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {o.returns.map((r: any) => (
                 <form key={r.id} action={updateReturn} className="flex flex-wrap items-end gap-3 rounded-2xl border p-4 text-sm">
                   <input type="hidden" name="id" value={r.id} /><input type="hidden" name="orderId" value={o.id} />
                   <p className="w-full"><b>Reason:</b> {r.reason}</p>
-                  <Select name="status" defaultValue={r.status} className="h-9 w-40">{["requested", "approved", "rejected", "received", "refunded"].map((s) => <option key={s}>{s}</option>)}</Select>
-                  <Input name="refund_amount" type="number" placeholder="Refund ₦" defaultValue={r.refund_amount ?? ""} className="h-9 w-32" />
+                  <Select name="status" defaultValue={r.status} className="h-9 w-40">{["requested", "approved", "rejected", "received", "swapped"].map((s) => <option key={s}>{s}</option>)}</Select>
+                  <p className="w-full text-xs text-muted-foreground">Check: unused, no scratches or dents, fully functioning, within 7 days of delivery.</p>
                   <Button size="sm">Update</Button>
                 </form>
               ))}

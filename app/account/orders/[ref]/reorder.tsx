@@ -10,7 +10,7 @@ export function Reorder({ ids }: { ids: string[] }) {
   const { add } = useStore(); const router = useRouter();
   async function reorder() {
     const { items } = (await fetch(`/api/products?ids=${ids.join(",")}`).then((r) => r.json())) as { items: Product[] };
-    items.filter((p) => p.stock > 0).forEach((p) => add(toCartProduct(p)));
+    items.filter((p) => p.stock > 0 && !p.comingSoon && !p.priceOnRequest).forEach((p) => add(toCartProduct(p)));
     router.push("/cart");
   }
   return <Button variant="outline" size="sm" onClick={reorder} disabled={!ids.length}><RotateCcw />Reorder</Button>;

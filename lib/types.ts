@@ -8,6 +8,10 @@ export type Product = {
   images: string[]; shortDescription: string; description: string;
   highlights: string[]; specs: Record<string, string>; warranty: string;
   isFeatured: boolean; isBestSeller: boolean; isNew: boolean; flashDealEndsAt: string | null;
+  /** Not yet available – shown with "Coming soon" and a Contact-us button instead of Add to cart */
+  comingSoon: boolean;
+  /** Price hidden ("Price on request"); cannot be bought online */
+  priceOnRequest: boolean;
   installable: boolean; createdAt: string;
 };
 export type Review = { id: string; productId: string; author: string; rating: number; title: string; body: string; photos: string[]; verified: boolean; createdAt: string };

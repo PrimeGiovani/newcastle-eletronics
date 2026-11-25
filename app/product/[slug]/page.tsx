@@ -10,7 +10,7 @@ import { Breadcrumbs } from "@/components/page-breadcrumbs";
 import { JsonLd } from "@/components/json-ld";
 import { ProductGallery } from "@/components/product/gallery";
 import { PurchasePanel } from "@/components/product/purchase-panel";
-import { DeliveryEstimator } from "@/components/product/delivery-estimator";
+import { DeliveryInfo } from "@/components/product/delivery-estimator";
 import { Reviews } from "@/components/product/reviews";
 import { Rating } from "@/components/product/rating";
 import { ProductGrid } from "@/components/product/product-card";
@@ -41,8 +41,8 @@ export default async function ProductPage({ params }: Props) {
   if (!p) notFound();
   const [reviews, related, fbt, cat] = await Promise.all([getReviews(p.id), getRelated(p, 4), getFrequentlyBoughtTogether(p, 2), getCategory(p.categorySlug)]);
   const parent = cat?.parentSlug ? await getCategory(cat.parentSlug) : null;
-  const off = discountPct(p.price, p.compareAtPrice);
-  const stockLabel = p.stock === 0 ? "Out of stock" : p.stock <= p.lowStockThreshold ? `Only ${p.stock} left in stock – order soon` : `In stock (${p.stock} available)`;
+  const off = p.priceOnRequest ? 0 : discountPct(p.price, p.compareAtPrice);
+  const stockLabel = p.comingSoon ? "Coming soon – contact us to enquire or book ahead" : p.stock === 0 ? "Out of stock" : p.stock <= p.lowStockThreshold ? `Only ${p.stock} left in stock – order soon` : `In stock (${p.stock} available)`;
 
   return (
     <>
@@ -52,24 +52,30 @@ export default async function ProductPage({ params }: Props) {
       <section className="container grid gap-10 pb-6 pt-4 lg:grid-cols-[1.15fr_1fr] lg:gap-16">
         <ProductGallery images={p.images} name={p.name} />
         <div>
-          <p className="text-sm font-semibold text-flame">{p.isNew ? "New" : p.category}</p>
-          <h1 className="mt-1 text-3xl font-semibold leading-tight tracking-tightest sm:text-5xl">{p.name}</h1>
+          <p className="text-sm font-semibold text-flame">{p.comingSoon ? "Coming soon" : p.isNew ? "New arrival" : p.isBestSeller ? "Best seller" : p.category}</p>
+          <h1 className="mt-1 text-3xl font-semibold leading-tight tracking-tightest sm:text-4xl">{p.name}</h1>
           <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
-            <a href="#reviews" className="flex items-center gap-2 hover:underline"><Rating value={p.rating} /><span>{p.rating.toFixed(1)} · {p.reviewCount} reviews</span></a>
+            {p.reviewCount > 0
+              ? <a href="#reviews" className="flex items-center gap-2 hover:underline"><Rating value={p.rating} /><span>{p.rating.toFixed(1)} · {p.reviewCount} reviews</span></a>
+              : <a href="#reviews" className="text-muted-foreground hover:underline">No reviews yet</a>}
             <span className="text-muted-foreground">SKU: {p.sku}</span>
           </div>
           <p className="mt-4 text-muted-foreground sm:text-lg">{p.shortDescription}</p>
 
           <div className="mt-8 rounded-[24px] bg-cloud p-6 dark:bg-muted">
+            {p.priceOnRequest ? (
+              <div><span className="text-3xl font-semibold tracking-tight sm:text-4xl">Price on request</span><p className="mt-1 text-sm text-muted-foreground">Contact us on WhatsApp or call for pricing{p.comingSoon ? " and availability" : ""}.</p></div>
+            ) : <>
             <div className="flex flex-wrap items-baseline gap-3">
               <span className="text-3xl font-semibold tracking-tight sm:text-4xl">{formatNaira(p.price)}</span>
               {off > 0 && <><s className="text-lg text-muted-foreground">{formatNaira(p.compareAtPrice!)}</s><Badge variant="sale">Save {formatNaira(p.compareAtPrice! - p.price)}</Badge></>}
             </div>
             <p className="mt-1 text-xs text-muted-foreground">VAT inclusive. Pay with card, bank transfer, USSD or QR.</p>
+            </>}
             {p.flashDealEndsAt && new Date(p.flashDealEndsAt) > new Date() && (
               <div className="mt-5 flex flex-wrap items-center gap-3"><span className="text-sm font-semibold text-flame">Flash deal ends in</span><Countdown to={p.flashDealEndsAt} /></div>
             )}
-            <p className={`mt-4 flex items-center gap-2 text-sm font-semibold ${p.stock === 0 ? "text-destructive" : p.stock <= p.lowStockThreshold ? "text-flame" : "text-emerald-600"}`}>
+            <p className={`mt-4 flex items-center gap-2 text-sm font-semibold ${p.comingSoon ? "text-ink-soft dark:text-white/80" : p.stock === 0 ? "text-destructive" : p.stock <= p.lowStockThreshold ? "text-flame" : "text-emerald-600"}`}>
               <span className="h-2 w-2 rounded-full bg-current" />{stockLabel}
             </p>
           </div>
@@ -77,17 +83,17 @@ export default async function ProductPage({ params }: Props) {
           <ul className="mt-6 grid gap-2 sm:grid-cols-2">{p.highlights.map((h) => <li key={h} className="flex gap-2 text-sm"><BadgeCheck className="h-5 w-5 shrink-0 text-electric" />{h}</li>)}</ul>
           <div className="mt-6"><PurchasePanel product={toCartProduct(p)} /></div>
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            <DeliveryEstimator price={p.price} />
+            <DeliveryInfo />
             <ul className="space-y-3 rounded-[20px] bg-cloud p-5 dark:bg-muted text-sm">
               <li className="flex gap-3"><ShieldCheck className="h-5 w-5 shrink-0 text-electric" /><span><b>Newcastle warranty:</b> {p.warranty}</span></li>
-              <li className="flex gap-3"><RotateCcw className="h-5 w-5 shrink-0 text-electric" /><span><b>7-day returns</b> on unopened items</span></li>
-              {p.installable && <li className="flex gap-3"><Wrench className="h-5 w-5 shrink-0 text-electric" /><span><b>Professional installation</b> available at checkout</span></li>}
+              <li className="flex gap-3"><RotateCcw className="h-5 w-5 shrink-0 text-electric" /><span><b>7-day swap policy</b> – unused, undamaged and fully working items can be swapped. <a href="/about#policies" className="text-electric hover:underline">Details</a></span></li>
+              {p.installable && <li className="flex gap-3"><Wrench className="h-5 w-5 shrink-0 text-electric" /><span><b>Installation by trusted Newcastle installers</b> – separate charge, arranged after purchase. <a href="/installation" className="text-electric hover:underline">Contact us to book</a></span></li>}
             </ul>
           </div>
         </div>
       </section>
 
-      {fbt.length > 0 && (
+      {fbt.length > 0 && !p.priceOnRequest && !p.comingSoon && (
         <section className="container mt-10">
           <h2 className="font-display text-2xl font-semibold">Frequently bought together</h2>
           <div className="mt-5 flex flex-col gap-5 rounded-[28px] bg-cloud p-6 dark:bg-muted lg:flex-row lg:items-center">

@@ -21,32 +21,32 @@ const faqs = [
 ];
 
 export default async function SolarPage() {
-  const { items } = await searchProducts({ category: "solar-solutions", perPage: 8 });
+  const { items } = await searchProducts({ category: "solar-solutions", perPage: 12 });
   return (
     <>
       <JsonLd data={faqJsonLd(faqs)} />
       <Breadcrumbs items={[{ name: "Solar Solutions", path: "/solar-solutions" }]} />
       <section className="container">
         <div className="tile flex flex-col items-center px-6 pt-14 text-center sm:pt-20">
-          <p className="inline-flex items-center gap-2 text-sm font-semibold text-flame"><Sun className="h-4 w-4" />New · Newcastle Solar</p>
+          <p className="inline-flex items-center gap-2 text-sm font-semibold text-flame"><Sun className="h-4 w-4" />Coming soon · Newcastle Solar</p>
           <h1 className="mt-3 max-w-3xl text-5xl font-semibold tracking-tightest sm:text-7xl">Power that never takes a break.</h1>
-          <p className="mt-5 max-w-2xl text-lg text-ink-muted sm:text-xl dark:text-white/70">Newcastle solar panels, lithium batteries, hybrid inverters and all-in-one ESS — sized and installed by our engineers.</p>
+          <p className="mt-5 max-w-2xl text-lg text-ink-muted sm:text-xl dark:text-white/70">Portable power stations, all-in-one ESS, lithium batteries, inverters, solar panels and street lights are coming soon. Contact us to enquire, get a price or book ahead.</p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <a href="#calculator" className={buttonVariants({ variant: "electric", size: "lg" })}><Calculator />Size your system</a>
-            <a href="#consultation" className={buttonVariants({ variant: "outline", size: "lg" })}>Free consultation</a>
+            <a href="#consultation" className={buttonVariants({ variant: "outline", size: "lg" })}>Enquire / book ahead</a>
           </div>
           <div className="relative mt-10 aspect-[2/1] w-full max-w-4xl"><Image src={ART("solar-panel")[0]} alt="Newcastle 550W mono solar panel" fill priority sizes="(min-width:1024px) 896px, 100vw" className="object-contain" /></div>
         </div>
       </section>
 
       <section className="section container">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {[[Sun, "Solar Panels", "solar-panels", "High-efficiency mono modules"], [BatteryCharging, "Lithium Batteries", "lithium-batteries", "LiFePO4, 6,000+ cycles"], [Zap, "Hybrid Inverters", "hybrid-inverters", "Solar + grid + battery"], [ShieldCheck, "Energy Storage Systems", "ess-systems", "All-in-one plug & play"]].map(([Icon, t, s, d]) => {
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[[BatteryCharging, "Portable Power Stations", "portable-power-stations", "500W–1000W portable power"], [ShieldCheck, "All-in-One ESS", "all-in-one-ess", "4kW–6.5kW with built-in storage"], [BatteryCharging, "Lithium Batteries", "lithium-batteries", "Lithium battery storage"], [Zap, "Inverters", "inverters", "2.5kW and 4kW solar inverters"], [Sun, "Solar Panels", "solar-panels", "580W and 620W mono panels"], [Sun, "Street Lights", "street-lights", "300W and 400W solar street lights"]].map(([Icon, t, s, d]) => {
             const I = Icon as typeof Sun;
             return <Link key={s as string} href={`/category/${s}`} className="reveal rounded-[28px] bg-cloud p-8 transition duration-500 ease-apple hover:-translate-y-1 hover:shadow-lift dark:bg-muted"><I className="h-8 w-8 text-electric" strokeWidth={1.5} /><h2 className="mt-4 text-lg font-semibold">{t as string}</h2><p className="mt-1 text-sm text-muted-foreground">{d as string}</p></Link>;
           })}
         </div>
-        <h2 className="mb-6 mt-14 font-display text-2xl font-semibold">Popular solar products</h2>
+        <h2 className="mb-6 mt-14 text-2xl font-semibold">Coming soon – enquire or book ahead</h2>
         <ProductGrid products={items} />
       </section>
 

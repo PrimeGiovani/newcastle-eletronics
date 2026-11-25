@@ -18,6 +18,7 @@ export const mapProduct = (r: Row): Product => ({
   images: r.images ?? [], shortDescription: r.short_description ?? "", description: r.description ?? "",
   highlights: r.highlights ?? [], specs: r.specs ?? {}, warranty: r.warranty ?? "",
   isFeatured: r.is_featured, isBestSeller: r.is_best_seller, isNew: r.is_new, flashDealEndsAt: r.flash_deal_ends_at,
+  comingSoon: Boolean(r.coming_soon), priceOnRequest: Boolean(r.price_on_request),
   installable: r.installable, createdAt: r.created_at,
 });
 const mapCategory = (r: Row): Category => ({ id: r.id, slug: r.slug, name: r.name, description: r.description ?? "", image: r.image_url ?? "", parentSlug: r.parent_slug ?? null, sortOrder: r.sort_order ?? 0 });
@@ -84,7 +85,7 @@ export async function searchProducts(f: ProductFilters): Promise<{ items: Produc
   if (f.deals) q = q.eq("on_sale", true);
   const order: Record<string, [string, boolean]> = { popular: ["sold_count", false], newest: ["created_at", false], "price-asc": ["price", true], "price-desc": ["price", false], rating: ["rating_avg", false] };
   const [col, asc] = order[f.sort ?? "popular"];
-  const { data, count } = await q.order(col, { ascending: asc }).range((page - 1) * perPage, page * perPage - 1);
+  const { data, count } = await q.order(col, { ascending: asc }).order("sort_order").range((page - 1) * perPage, page * perPage - 1);
   const total = count ?? 0;
   return { items: (data ?? []).map(mapProduct), total, page, pages: Math.max(1, Math.ceil(total / perPage)) };
 }
@@ -121,13 +122,13 @@ export async function getRelated(p: Product, n = 4) {
 
 /** "Frequently bought together" – curated complementary categories; swap for co-purchase SQL once order volume exists. */
 const COMPLEMENTS: Record<string, string[]> = {
-  "air-conditioners": ["solar-solutions"], "sound-system": ["sound-system"],
-  "kitchen-appliances": ["kitchen-appliances"], "solar-solutions": ["solar-solutions"],
+  "kitchen-appliances": ["kitchen-appliances"], "air-conditioners": ["air-conditioners"],
+  "sound-system": ["sound-system"], "solar-solutions": [],
 };
 export async function getFrequentlyBoughtTogether(p: Product, n = 2) {
   const cats = COMPLEMENTS[p.parentCategorySlug ?? p.categorySlug] ?? [];
   const lists = await Promise.all(cats.map((c) => searchProducts({ category: c, perPage: 6, inStock: true })));
-  return lists.flatMap((l) => l.items).filter((x) => x.id !== p.id && x.categorySlug !== p.categorySlug).slice(0, n);
+  return lists.flatMap((l) => l.items).filter((x) => x.id !== p.id && x.categorySlug !== p.categorySlug && !x.comingSoon && !x.priceOnRequest).slice(0, n);
 }
 
 export async function getReviews(productId: string): Promise<Review[]> {
@@ -136,4 +137,19 @@ export async function getReviews(productId: string): Promise<Review[]> {
     .select("id, product_id, author_name, rating, title, body, photos, verified_purchase, created_at")
     .eq("product_id", productId).eq("status", "approved").order("created_at", { ascending: false }).limit(50);
   return (data ?? []).map((r) => ({ id: r.id, productId: r.product_id, author: r.author_name, rating: r.rating, title: r.title ?? "", body: r.body, photos: r.photos ?? [], verified: r.verified_purchase, createdAt: r.created_at }));
+}
+
+/** Latest 4–5★ reviews for the homepage "What our customers say" section. */
+export async function getTopReviews(n = 3): Promise<(Review & { productName: string; productSlug: string })[]> {
+  if (!useDb()) {
+    return seed.reviews.filter((r) => r.rating >= 4).sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt)).slice(0, n)
+      .map((r) => { const p = seed.products.find((x) => x.id === r.productId)!; return { ...r, productName: p.name, productSlug: p.slug }; });
+  }
+  const { data } = await createPublicClient().from("reviews")
+    .select("id, product_id, author_name, rating, title, body, photos, verified_purchase, created_at, products(name, slug)")
+    .eq("status", "approved").gte("rating", 4).order("created_at", { ascending: false }).limit(n);
+  return (data ?? []).map((r) => {
+    const prod = r.products as unknown as { name: string; slug: string } | null;
+    return { id: r.id, productId: r.product_id, author: r.author_name, rating: r.rating, title: r.title ?? "", body: r.body, photos: r.photos ?? [], verified: r.verified_purchase, createdAt: r.created_at, productName: prod?.name ?? "", productSlug: prod?.slug ?? "" };
+  });
 }

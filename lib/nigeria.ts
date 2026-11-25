@@ -1,4 +1,4 @@
-/** Nigerian states, shipping zones, LGAs and phone validation. */
+/** Nigerian states, LGAs, shipping rules and phone validation. */
 export type Zone = "lagos" | "south-west" | "fct" | "south" | "north";
 
 export const STATES: { name: string; zone: Zone }[] = [
@@ -23,40 +23,30 @@ export const LGAS: Record<string, string[]> = {
   Ogun: ["Abeokuta North", "Abeokuta South", "Ado-Odo/Ota", "Ifo", "Ijebu Ode", "Obafemi Owode", "Sagamu", "Ewekoro", "Ikenne", "Remo North"],
 };
 
-export const ZONE_RATES: Record<Zone, { label: string; fee: number; days: [number, number] }> = {
-  lagos: { label: "Lagos", fee: 5000, days: [1, 2] },
-  "south-west": { label: "South-West", fee: 8000, days: [2, 3] },
-  fct: { label: "Abuja (FCT)", fee: 10000, days: [2, 4] },
-  south: { label: "South-South / South-East", fee: 12000, days: [3, 5] },
-  north: { label: "North", fee: 15000, days: [4, 7] },
-};
+/** Orders at or above this subtotal get free delivery anywhere in Nigeria. */
+export const FREE_SHIPPING_THRESHOLD = 2_000_000;
 
-export const FREE_SHIPPING_THRESHOLD = 1_000_000;
-
-export type DeliveryMethod = "standard" | "express" | "pickup";
+/** "standard" = delivery to the customer's address; "pickup" = collect from the Newcastle showroom. */
+export type DeliveryMethod = "standard" | "pickup";
 export const DELIVERY_METHODS: Record<DeliveryMethod, { label: string; note: string }> = {
-  standard: { label: "Standard delivery", note: "Doorstep delivery by our logistics partners" },
-  express: { label: "Express delivery", note: "Priority dispatch – arrives faster" },
-  pickup: { label: "Showroom pickup (Iyana Iba, Ojo, Lagos)", note: "Free – ready within 24 hours" },
+  standard: { label: "Delivery to my address", note: "Free on orders of ₦2,000,000 and above. Below that, Newcastle will contact you to arrange shipping." },
+  pickup: { label: "Pick up at our showroom", note: "Free – 18 Oba Daudu St, Iyana Iba, Ojo, Lagos. We'll call when your order is ready." },
 };
 
-export const zoneFor = (state: string): Zone => STATES.find((s) => s.name === state)?.zone ?? "north";
-
-export function shippingQuote(state: string, subtotal: number, method: DeliveryMethod = "standard") {
-  if (method === "pickup") return { fee: 0, days: [0, 1] as [number, number], zone: "lagos" as Zone };
-  const zone = zoneFor(state);
-  const r = ZONE_RATES[zone];
-  let fee = subtotal >= FREE_SHIPPING_THRESHOLD && method === "standard" ? 0 : r.fee;
-  let days = r.days;
-  if (method === "express") { fee = Math.round(r.fee * 1.75); days = [Math.max(1, r.days[0] - 1), Math.max(1, r.days[1] - 2)]; }
-  return { fee, days, zone };
+/**
+ * Shipping rules (set by Newcastle):
+ *  • Pickup – always free.
+ *  • Delivery, subtotal ≥ ₦2M – free.
+ *  • Delivery, subtotal < ₦2M – not charged online; Newcastle contacts the customer to arrange shipping.
+ */
+export function shippingQuote(subtotal: number, method: DeliveryMethod = "standard") {
+  if (method === "pickup") return { fee: 0, free: true, arrangeLater: false };
+  const free = subtotal >= FREE_SHIPPING_THRESHOLD;
+  return { fee: 0, free, arrangeLater: !free };
 }
 
-export const estimateDateRange = ([a, b]: [number, number], from = new Date()) => {
-  const add = (n: number) => { const d = new Date(from); let added = 0; while (added < n) { d.setDate(d.getDate() + 1); if (d.getDay() !== 0) added++; } return d; };
-  const f = (d: Date) => d.toLocaleDateString("en-NG", { weekday: "short", day: "numeric", month: "short" });
-  return a === b ? f(add(a)) : `${f(add(a))} – ${f(add(b))}`;
-};
+export const shippingLabel = (q: ReturnType<typeof shippingQuote>, method: DeliveryMethod) =>
+  method === "pickup" ? "Free pickup" : q.free ? "FREE" : "To be arranged";
 
 /** Accepts 0803…, +234803…, 234803… ; returns E.164 (+234XXXXXXXXXX) or null. */
 export function normalizeNgPhone(input: string): string | null {

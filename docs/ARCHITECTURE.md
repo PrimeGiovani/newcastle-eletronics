@@ -41,8 +41,8 @@ components/
   solar/         SolarCalculator
 lib/
   catalog.ts     Data access. Uses Supabase when configured, otherwise the seed catalogue.
-  pricing.ts     Server-authoritative totals, coupons, installation fees (unit tested)
-  nigeria.ts     36 states + FCT, shipping zones, LGAs, delivery estimates, phone normalisation (unit tested)
+  pricing.ts     Server-authoritative totals, coupons, purchasability rules (unit tested)
+  nigeria.ts     36 states + FCT, LGAs, shipping rules (free ≥ ₦2M, otherwise arranged; free pickup), phone normalisation (unit tested)
   solar.ts       Solar sizing maths (unit tested)
   paystack.ts    Initialise / verify / webhook signature (HMAC-SHA512, timing-safe)
   orders.ts      confirmPayment(): idempotent fulfilment + receipt email
@@ -64,7 +64,7 @@ middleware.ts                  Session refresh + /account and /admin gate
 | Catalogue | `categories` (self-referencing tree), `brands`, `products` (generated `tsvector` search column), `product_images` |
 | Inventory | `inventory` (quantity, reserved, low-stock threshold), `inventory_movements` (audit log); views `low_stock`, `product_listing` |
 | Orders | `orders` (address snapshot, totals, ETA, tracking), `order_items` (price snapshot), `order_events` (timeline), `payments`, `returns` |
-| Shipping | `shipping_zones`, `shipping_states` |
+| Shipping | Rules in code (`lib/nigeria.ts`); `orders.shipping_to_be_arranged` flags orders under ₦2M |
 | Marketing | `coupons`, `promotions`, `carts` (abandoned-cart tracking), `newsletter_subscribers` |
 | Engagement | `reviews` (photos, verified purchase; a trigger keeps product ratings up to date), `wishlists` |
 | Service | `support_tickets`, `ticket_messages`, `leads` (quote / contact / installation), `solar_consultations` |
