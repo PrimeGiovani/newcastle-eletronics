@@ -100,6 +100,14 @@ Key functions:
 - Fonts are self-hosted with `next/font`. Lucide icons are tree-shaken (`optimizePackageImports`).
 - About 103 kB of shared JS. Most components are Server Components, and client components are limited to interactive parts.
 
+## Order & payment flow
+| Payment | Flow | Stock |
+|---|---|---|
+| **Paystack** (delivery or pickup) | pending → *(Paystack webhook / callback verified)* **paid** → processing → shipped → delivered, or → ready_for_pickup → collected | Deducted when paid. Unpaid orders are auto-cancelled after 24h. |
+| **Pay at store** (pickup only) | pending, with a "reserved until" date (3 days) → *staff clicks "Mark as paid in store" (cash / POS / transfer)* **paid** → ready_for_pickup → collected | **Held** (`inventory.reserved`) when the order is placed and deducted when paid. Expired holds are released by the daily cron, and the customer is emailed. |
+
+Emails: Paystack paid → receipt to the customer and an alert to `ADMIN_NOTIFY_EMAIL`. Pay at store → "Order received – pay at showroom" to the customer, plus a staff alert, as soon as the order is placed; then a receipt when it's marked paid. Status changes email the customer when "Email customer" is ticked. Sending requires Resend (`RESEND_API_KEY`, `EMAIL_FROM`).
+
 ## Testing
 - `npm test` runs the Node test runner: solar sizing, phone validation, shipping, coupons and server totals.
 - The SQL migrations were applied to PostgreSQL 16 with a Supabase auth/storage shim. That run covered payment idempotency, stock decrement, RLS isolation, role-escalation protection and order-tracking access control.

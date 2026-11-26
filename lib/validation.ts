@@ -23,6 +23,8 @@ export type AddressInput = z.infer<typeof addressSchema>;
 export const checkoutSchema = z.object({
   customer: z.object({ email: z.string().trim().toLowerCase().email(), fullName: z.string().trim().min(2).max(100), phone: ngPhone }),
   deliveryMethod: z.enum(["standard", "pickup"]),
+  /** paystack = pay online now; in_store = reserve online, pay at the showroom (pickup only) */
+  paymentMethod: z.enum(["paystack", "in_store"]).default("paystack"),
   /** Required for delivery; ignored for showroom pickup */
   shipping: addressSchema.optional(),
   couponCode: z.string().trim().toUpperCase().max(30).optional(),
@@ -31,6 +33,7 @@ export const checkoutSchema = z.object({
   notes: z.string().max(500).optional(),
 }).superRefine((v, ctx) => {
   if (v.deliveryMethod === "standard" && !v.shipping) ctx.addIssue({ code: "custom", path: ["shipping"], message: "Please enter a delivery address" });
+  if (v.paymentMethod === "in_store" && v.deliveryMethod !== "pickup") ctx.addIssue({ code: "custom", path: ["paymentMethod"], message: "Pay at store is only available with showroom pickup" });
 });
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
 

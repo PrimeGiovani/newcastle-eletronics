@@ -8,7 +8,7 @@ Follow the steps in order. The site runs without any keys (built-in catalogue fr
 
 1. Create a project at <https://supabase.com>. Choose a region close to Nigeria (**eu-west-2 London** or **eu-central-1 Frankfurt**).
 2. **Run the migrations** (in order):
-   - Follow **[SUPABASE-IMPORT.md](SUPABASE-IMPORT.md)**: run `0001_schema.sql`, then `0002_rls.sql`, then `seed.sql` (your 76 products) in the SQL Editor.
+   - Follow **[SUPABASE-IMPORT.md](SUPABASE-IMPORT.md)**: run `0001`–`0004` in `supabase/migrations/`, then `seed.sql` (your 76 products), in the SQL Editor.
    - Or use the CLI: `npx supabase link --project-ref <ref> && npx supabase db push`, then run `seed.sql` in the editor.
 3. **Copy your keys** from Project Settings → API into `.env.local` and Vercel:
    - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
@@ -59,7 +59,7 @@ Without these, emails are skipped and logged to the server console.
    openssl rand -hex 32
    ```
 3. Deploy.
-   - `vercel.json` pins the region to `cdg1` (Paris, the lowest latency to Lagos) and runs a **daily** cron (03:00 UTC) that cancels orders still unpaid after 24 hours. Vercel Hobby only allows daily crons; this job does not need to run more often.
+   - `vercel.json` pins the region to `cdg1` (Paris, the lowest latency to Lagos) and runs a **daily** cron (03:00 UTC) that cancels Paystack orders still unpaid after 24 hours, and releases pay-at-store reservations not paid within 3 days. Vercel Hobby only allows daily crons; this job does not need to run more often.
    - Optionally, under Settings → Functions, set the default region to match.
 4. Under Settings → Domains, add `newcastleelectronics.com` and `www.newcastleelectronics.com`. Choose `www` as primary and redirect the apex to it.
 

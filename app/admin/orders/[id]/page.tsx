@@ -5,7 +5,7 @@ import { formatNaira } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
 import { StatusBadge } from "../../../account/status-badge";
-import { updateOrderStatus, updateReturn } from "../../actions";
+import { markPaidInStore, updateOrderStatus, updateReturn } from "../../actions";
 import { PageTitle, Table, Td } from "../../ui";
 
 /** Fulfilment workflow: paid → processing (picked/packed) → shipped (tracking) → delivered. */
@@ -16,7 +16,13 @@ export default async function AdminOrder({ params }: { params: Promise<{ id: str
   if (!o) notFound();
   const a = o.shipping_address as Record<string, string>;
   type Ev = { id: number; status: string; note: string; created_at: string };
-  const NEXT: Record<string, string> = { paid: "processing", processing: "shipped", shipped: "delivered", return_requested: "returned" };
+  const pickup = o.delivery_method === "pickup";
+  // Suggested next step in the fulfilment workflow
+  const NEXT: Record<string, string> = pickup
+    ? { paid: "ready_for_pickup", processing: "ready_for_pickup", ready_for_pickup: "collected", return_requested: "returned" }
+    : { paid: "processing", processing: "shipped", shipped: "delivered", return_requested: "returned" };
+  const awaitingStorePayment = o.payment_method === "in_store" && o.status === "pending";
+  const LABEL = (s: string) => s.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
   return (
     <>
       <PageTitle action={<StatusBadge status={o.status} />}>Order {o.reference}</PageTitle>
@@ -62,12 +68,31 @@ export default async function AdminOrder({ params }: { params: Promise<{ id: str
           )}
         </div>
         <div className="space-y-6">
+          <div className="rounded-3xl border p-5 text-sm">
+            <p className="font-semibold">Payment</p>
+            <p className="mt-1">{o.payment_method === "in_store" ? <>Pay at store{o.paid_in_store_by ? ` · paid by ${String(o.paid_in_store_by).toUpperCase()}` : ""}</> : "Paystack (online)"}</p>
+            {awaitingStorePayment && o.hold_until && <p className="mt-1 text-amber-700 dark:text-amber-300">Items held until {new Date(o.hold_until).toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short" })}. Released automatically if not paid.</p>}
+          </div>
+          {awaitingStorePayment && (
+            <form action={markPaidInStore} className="space-y-3 rounded-3xl border-2 border-electric p-5">
+              <input type="hidden" name="orderId" value={o.id} />
+              <p className="font-semibold">Customer paid at the showroom?</p>
+              <p className="text-xs text-muted-foreground">Confirm only after you've received {formatNaira(+o.total)}. Stock is deducted and the customer gets a receipt by email.</p>
+              <Select name="method" defaultValue="pos" aria-label="Payment method"><option value="pos">POS (card)</option><option value="cash">Cash</option><option value="transfer">Bank transfer</option></Select>
+              <Button className="w-full">Mark as paid in store</Button>
+            </form>
+          )}
           <form action={updateOrderStatus} className="space-y-3 rounded-3xl border p-5">
             <input type="hidden" name="orderId" value={o.id} />
             <p className="font-semibold">Update status</p>
-            <div><Label htmlFor="st">Status</Label><Select id="st" name="status" defaultValue={NEXT[o.status] ?? o.status}>{ORDER_STATUSES.map((s) => <option key={s}>{s}</option>)}</Select></div>
+            <div><Label htmlFor="st">Status</Label><Select id="st" name="status" defaultValue={awaitingStorePayment ? "cancelled" : NEXT[o.status] ?? o.status}>
+              {(awaitingStorePayment ? ["pending", "cancelled"] : ORDER_STATUSES.filter((s) => (pickup ? !["shipped", "delivered"].includes(s) : !["ready_for_pickup", "collected"].includes(s)))).map((s) => <option key={s} value={s}>{LABEL(s)}</option>)}
+            </Select>{awaitingStorePayment && <p className="mt-1 text-xs text-muted-foreground">Not paid yet: you can only cancel (releases the held items).</p>}</div>
+            {!pickup && <>
             <div><Label htmlFor="carrier">Carrier</Label><Input id="carrier" name="carrier" defaultValue={o.carrier ?? ""} placeholder="GIG Logistics, Kwik, In-house…" /></div>
             <div><Label htmlFor="tn">Tracking number</Label><Input id="tn" name="tracking_number" defaultValue={o.tracking_number ?? ""} /></div>
+            </>}
+            {pickup && <><input type="hidden" name="carrier" value="" /><input type="hidden" name="tracking_number" value="" /></>}
             <div><Label htmlFor="note">Note (visible to customer)</Label><Input id="note" name="note" /></div>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="notify" defaultChecked className="accent-electric" />Email customer</label>
             <Button className="w-full">Save</Button>

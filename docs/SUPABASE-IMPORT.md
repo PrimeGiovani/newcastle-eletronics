@@ -1,6 +1,6 @@
 # Importing the database into Supabase (step by step)
 
-Your Supabase project starts with **no tables**. You'll run four SQL files **once, in this order**. It takes about 5 minutes.
+Your Supabase project starts with **no tables**. You'll run six SQL files **once, in this order**. It takes about 5 minutes.
 
 ## Where the files are
 In your project folder (GitHub repository / zip):
@@ -10,7 +10,9 @@ newcastle-electronics/
     ├── migrations/
     │   ├── 0001_schema.sql   ← STEP 1: creates all 24 tables, views and functions
     │   ├── 0002_rls.sql      ← STEP 2: security rules + image storage buckets
-    │   └── 0003_reviews.sql  ← STEP 2b: lets staff add customer reviews
+    │   ├── 0003_reviews.sql  ← STEP 2b: lets staff add customer reviews
+    │   ├── 0004_grants.sql   ← STEP 2c: lets the website read the data (REQUIRED on new Supabase projects)
+    │   └── 0005_pay_in_store.sql ← STEP 2d: "Pay at our showroom" + Ready for pickup / Collected statuses
     ├── seed.sql              ← STEP 3: your 76 products, 22 categories, stock, images, reviews, coupons
     └── updates/              ← one-off fixes, ONLY if you imported an older seed.sql
 ```
@@ -40,6 +42,15 @@ On GitHub you can also open each file, click **Raw**, then select all and copy.
 1. Click **+ New query**, paste the whole of `supabase/migrations/0003_reviews.sql` and click **Run**.
 2. ✅ **"Success. No rows returned"**.
 
+## Step 2c: Permissions (`0004_grants.sql`), required
+New Supabase projects no longer let the website read tables automatically. Without this file the shop shows **no products**.
+1. Click **+ New query**, paste the whole of `supabase/migrations/0004_grants.sql` and click **Run**.
+2. ✅ **"Success. No rows returned"**. It's safe to run again.
+
+## Step 2d: Pay at store (`0005_pay_in_store.sql`)
+1. Click **+ New query**, paste the whole of `supabase/migrations/0005_pay_in_store.sql` and click **Run**.
+2. ✅ **"Success. No rows returned"**. It's safe to run again.
+
 ## Step 3: Load your products (`seed.sql`)
 1. Click **+ New query**.
 2. Paste the whole of `supabase/seed.sql` (about 165 KB, which the SQL Editor handles fine) and click **Run**.
@@ -59,10 +70,15 @@ select
 You can also open **Table Editor** (left sidebar) and browse `products`, `categories` and so on.
 
 ## Step 5: Connect the website
-1. In Supabase, go to **Project Settings → API** and copy:
-   - **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
-   - **anon public** key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - **service_role** key → `SUPABASE_SERVICE_ROLE_KEY` (secret – never share it)
+1. In Supabase, go to **Project Settings → API Keys** and copy. Either the new keys or the legacy keys work; just don't mix them up:
+
+   | Vercel variable | New keys (recommended) | Legacy keys |
+   |---|---|---|
+   | `NEXT_PUBLIC_SUPABASE_URL` | Project URL (`https://xxxx.supabase.co`) | same |
+   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | **Publishable** key `sb_publishable_…` | `anon` `public` key |
+   | `SUPABASE_SERVICE_ROLE_KEY` | **Secret** key `sb_secret_…` (never share) | `service_role` key |
+
+   ⚠️ Never put the Secret / service_role key in a `NEXT_PUBLIC_` variable.
 2. In Vercel, go to **Project → Settings → Environment Variables**, add all three, and tick **Production**.
 3. Go to **Deployments**, open the latest deployment, click **⋯** and choose **Redeploy**.
 4. Open `https://YOUR-DOMAIN/api/health?token=YOUR_CRON_SECRET`. You should see `"connected · 76 active products in database"` and `"paymentsReady": true`.
@@ -78,8 +94,14 @@ where id = (select id from auth.users where email = 'info@newcastleelectronics.c
 
 ---
 
+## Already set up? Adding pay at store
+Run `supabase/migrations/0005_pay_in_store.sql` (Step 2d) once, then redeploy. Nothing else needs re-running.
+
+## Already imported, but no products showing?
+Run `supabase/migrations/0004_grants.sql` (Step 2c), then redeploy in Vercel. Nothing else needs re-running.
+
 ## Already imported before 25 Nov 2026?
-- Run `supabase/migrations/0003_reviews.sql` (Step 2b).
+- Run `supabase/migrations/0003_reviews.sql` (Step 2b) and `0004_grants.sql` (Step 2c).
 - Then run `supabase/updates/001_rose_gold.sql`, which renames NC 18CFIN/GT to **Rose Gold**. Re-running `seed.sql` won't change products that already exist.
 
 ## Updating products later
@@ -98,6 +120,8 @@ where id = (select id from auth.users where email = 'info@newcastleelectronics.c
 ## Troubleshooting
 | Message | Fix |
 |---|---|
+| **Shop shows no products** even though the check query says 76 | Run `0004_grants.sql` (Step 2c), wait 1 minute, then redeploy in Vercel. `/api/health` → `STOREFRONT_CATALOGUE` shows the exact reason. |
+| `permission denied for table/view …` (code 42501) | Run `0004_grants.sql`. |
 | `relation "…" already exists` when running 0001 | Step 1 was already done. Go on to Step 2. |
 | `relation "products" does not exist` when running seed | Run Step 1 and Step 2 first. |
 | `policy "…" already exists` | Step 2 was already done. Go on to Step 3. |

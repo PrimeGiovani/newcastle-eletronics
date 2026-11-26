@@ -8,7 +8,7 @@ import { PageTitle, Table, Td } from "../ui";
 export default async function AdminOrders({ searchParams }: { searchParams: Promise<{ status?: string; q?: string }> }) {
   const { status, q } = await searchParams;
   const sb = await createClient();
-  let query = sb.from("orders").select("id, reference, customer_name, email, phone, total, status, delivery_method, shipping_to_be_arranged, shipping_address, created_at").order("created_at", { ascending: false }).limit(200);
+  let query = sb.from("orders").select("id, reference, customer_name, email, phone, total, status, delivery_method, payment_method, shipping_to_be_arranged, shipping_address, created_at").order("created_at", { ascending: false }).limit(200);
   if (status) query = query.eq("status", status);
   if (q) { const s = q.replace(/[%,()]/g, ""); query = query.or(`reference.ilike.%${s}%,email.ilike.%${s}%,customer_name.ilike.%${s}%,phone.ilike.%${s}%`); }
   const { data } = await query;
@@ -25,8 +25,8 @@ export default async function AdminOrders({ searchParams }: { searchParams: Prom
             <Td><Link href={`/admin/orders/${o.id}`} className="font-semibold text-electric">{o.reference}</Link></Td>
             <Td>{new Date(o.created_at).toLocaleDateString("en-NG")}</Td>
             <Td>{o.customer_name}<span className="block text-xs text-muted-foreground">{o.phone}</span></Td>
-            <Td>{(o.shipping_address as { pickup?: boolean; state?: string }).pickup ? "Showroom pickup" : (o.shipping_address as { state?: string }).state}</Td><Td>{o.delivery_method === "pickup" ? "Pickup" : o.shipping_to_be_arranged ? "Delivery – arrange" : "Free delivery"}</Td>
-            <Td><StatusBadge status={o.status} /></Td><Td className="font-semibold">{formatNaira(+o.total)}</Td>
+            <Td>{(o.shipping_address as { pickup?: boolean; state?: string }).pickup ? "Showroom pickup" : (o.shipping_address as { state?: string }).state}</Td><Td>{o.delivery_method === "pickup" ? (o.payment_method === "in_store" ? "Pickup · pay at store" : "Pickup") : o.shipping_to_be_arranged ? "Delivery – arrange" : "Free delivery"}</Td>
+            <Td><StatusBadge status={o.payment_method === "in_store" && o.status === "pending" ? "pending_store" : o.status} /></Td><Td className="font-semibold">{formatNaira(+o.total)}</Td>
           </tr>
         ))}
       </Table>

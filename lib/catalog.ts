@@ -24,11 +24,17 @@ export const mapProduct = (r: Row): Product => ({
 const mapCategory = (r: Row): Category => ({ id: r.id, slug: r.slug, name: r.name, description: r.description ?? "", image: r.image_url ?? "", parentSlug: r.parent_slug ?? null, sortOrder: r.sort_order ?? 0 });
 
 const useDb = isSupabaseConfigured;
+/** Never fail silently: database errors show in Vercel → Logs (and /api/health explains the fix). */
+const logDbError = (where: string, error: { code?: string; message: string } | null) => {
+  if (!error) return;
+  console.error(`[catalog] ${where}: ${error.code ?? ""} ${error.message}${error.code === "42501" ? " → run supabase/migrations/0004_grants.sql in the Supabase SQL Editor" : ""}`);
+};
 
 /* ───────────── Categories & brands ───────────── */
 export const getCategories = cache(async (): Promise<Category[]> => {
   if (!useDb()) return seed.categories;
-  const { data } = await createPublicClient().from("category_tree").select("*").order("sort_order");
+  const { data, error } = await createPublicClient().from("category_tree").select("*").order("sort_order");
+  logDbError("categories", error);
   return (data ?? []).map(mapCategory);
 });
 export const getTopCategories = async () => (await getCategories()).filter((c) => !c.parentSlug);
@@ -85,7 +91,8 @@ export async function searchProducts(f: ProductFilters): Promise<{ items: Produc
   if (f.deals) q = q.eq("on_sale", true);
   const order: Record<string, [string, boolean]> = { popular: ["sold_count", false], newest: ["created_at", false], "price-asc": ["price", true], "price-desc": ["price", false], rating: ["rating_avg", false] };
   const [col, asc] = order[f.sort ?? "popular"];
-  const { data, count } = await q.order(col, { ascending: asc }).order("sort_order").range((page - 1) * perPage, page * perPage - 1);
+  const { data, count, error } = await q.order(col, { ascending: asc }).order("sort_order").range((page - 1) * perPage, page * perPage - 1);
+  logDbError("products", error);
   const total = count ?? 0;
   return { items: (data ?? []).map(mapProduct), total, page, pages: Math.max(1, Math.ceil(total / perPage)) };
 }

@@ -54,7 +54,7 @@ export async function POST(req: Request) {
 
   // Verified purchase = a paid/delivered order containing this product (matched by account, or by email for guests)
   let q = admin.from("order_items").select("id, orders!inner(user_id, email, status)").eq("product_id", parsed.data.productId)
-    .in("orders.status", ["paid", "processing", "shipped", "delivered"]).limit(1);
+    .in("orders.status", ["paid", "processing", "ready_for_pickup", "collected", "shipped", "delivered"]).limit(1);
   q = user ? q.eq("orders.user_id", user.id) : q.ilike("orders.email", guest!.email);
   const { data: bought } = await q;
 

@@ -15,7 +15,7 @@ export async function requestReturn(fd: FormData) {
   if (!p.success) return;
   const sb = await createClient();
   // Enforce the 7-day window from the "delivered" event
-  const { data: ev } = await sb.from("order_events").select("created_at").eq("order_id", p.data.orderId).eq("status", "delivered").order("created_at", { ascending: false }).limit(1).maybeSingle();
+  const { data: ev } = await sb.from("order_events").select("created_at").eq("order_id", p.data.orderId).in("status", ["delivered", "collected"]).order("created_at", { ascending: false }).limit(1).maybeSingle();
   if (!ev || Date.now() - new Date(ev.created_at).getTime() > SWAP_WINDOW_DAYS * 864e5) return;
   const { error } = await sb.from("returns").insert({ order_id: p.data.orderId, reason: `[SWAP] ${p.data.reason}` }); // RLS: own + delivered only
   if (!error) revalidatePath("/account");

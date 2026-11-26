@@ -54,10 +54,10 @@ export async function GET(req: Request) {
   else if (url) {
     try {
       const sb = createJsClient(url, service, { auth: { persistSession: false } });
-      const { error } = await sb.from("orders").select("id", { head: true, count: "exact" });
+      const { error } = await sb.from("orders").select("id, payment_method", { head: true, count: "exact" });
       const { count } = await sb.from("products").select("id", { head: true, count: "exact" }).eq("status", "active");
       checks.SUPABASE_SERVICE_ROLE_KEY = error
-        ? { ok: false, detail: `database error: ${error.message}`, fix: error.message.includes("does not exist") || error.code === "42P01" || error.code === "PGRST205" ? "Run supabase/migrations/0001_schema.sql, 0002_rls.sql and supabase/seed.sql in the Supabase SQL Editor" : "Re-copy the service_role key" }
+        ? { ok: false, detail: `database error: ${error.message}`, fix: error.code === "42703" || /payment_method/.test(error.message) ? "Pay-at-store not set up: run supabase/migrations/0005_pay_in_store.sql in the Supabase SQL Editor" : error.code === "42501" ? "Permissions missing: run supabase/migrations/0004_grants.sql in the Supabase SQL Editor" : error.message.includes("does not exist") || error.code === "42P01" || error.code === "PGRST205" ? "Run the migrations (0001–0004) and supabase/seed.sql in the Supabase SQL Editor" : "Re-copy the secret / service_role key" }
         : { ok: true, detail: `connected · ${count ?? 0} active products in database` };
       if (!error && !count) checks.SUPABASE_SEED = { ok: false, detail: "database has no active products – checkout can't find the items in the cart", fix: "Run supabase/seed.sql in the Supabase SQL Editor (or add products in /admin)" };
     } catch (e) { checks.SUPABASE_SERVICE_ROLE_KEY = { ok: false, detail: `could not connect: ${(e as Error).message}` }; }
@@ -84,10 +84,22 @@ export async function GET(req: Request) {
     } catch { checks.AUTH = { ok: false, detail: "could not read Supabase auth settings" }; }
   }
 
+  // What VISITORS see: the storefront reads the catalogue with the publishable / anon key
+  if (url && anon) {
+    try {
+      const pub = createJsClient(url, anon, { auth: { persistSession: false } });
+      const { count, error } = await pub.from("product_listing").select("id", { head: true, count: "exact" }).eq("status", "active");
+      checks.STOREFRONT_CATALOGUE = error
+        ? { ok: false, detail: `visitors can't read products: ${error.message}`, fix: error.code === "42501" ? "Run supabase/migrations/0004_grants.sql in the Supabase SQL Editor, then wait ~1 minute" : "Check NEXT_PUBLIC_SUPABASE_ANON_KEY is the publishable (sb_publishable_…) or legacy anon key" }
+        : count ? { ok: true, detail: `${count} products visible to visitors` } : { ok: false, detail: "0 products visible to visitors", fix: "Run supabase/seed.sql, then redeploy" };
+    } catch (e) { checks.STOREFRONT_CATALOGUE = { ok: false, detail: (e as Error).message }; }
+  }
+  if ((anon ?? "").startsWith("sb_secret_")) checks.NEXT_PUBLIC_SUPABASE_ANON_KEY = { ok: false, detail: "this is a SECRET key – never put it in a NEXT_PUBLIC_ variable!", fix: "Use the Publishable key here, put the Secret key in SUPABASE_SERVICE_ROLE_KEY, then rotate the secret key in Supabase" };
+
   checks.CRON_SECRET = { ok: true, detail: "set" };
   checks.RESEND_API_KEY = has("RESEND_API_KEY") ? { ok: true, detail: "set – receipts will be emailed" } : { ok: true, detail: "not set (optional) – receipts won't be emailed" };
 
-  const paymentsReady = ["PAYSTACK_SECRET_KEY", "NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY", "NEXT_PUBLIC_SITE_URL"].every((k) => checks[k]?.ok) && checks.SUPABASE_SEED?.ok !== false;
+  const paymentsReady = ["PAYSTACK_SECRET_KEY", "NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY", "NEXT_PUBLIC_SITE_URL", "STOREFRONT_CATALOGUE"].every((k) => checks[k]?.ok) && checks.SUPABASE_SEED?.ok !== false;
   return NextResponse.json({
     paymentsReady,
     webhookUrl: `${(env.NEXT_PUBLIC_SITE_URL ?? "https://YOUR-DOMAIN").replace(/\/$/, "")}/api/paystack/webhook`,

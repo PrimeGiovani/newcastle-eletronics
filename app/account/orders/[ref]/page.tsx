@@ -26,6 +26,9 @@ export default async function OrderDetail({ params }: { params: Promise<{ ref: s
         <div><h1 className="font-display text-2xl font-semibold">Order {o.reference}</h1><p className="text-sm text-muted-foreground">Placed {new Date(o.created_at).toLocaleString("en-NG")}</p></div>
         <StatusBadge status={o.status} />
       </div>
+      {o.payment_method === "in_store" && o.status === "pending" && (
+        <p className="rounded-2xl bg-amber-50 p-4 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">Reserved – please pay {formatNaira(+o.total)} at our showroom by {o.hold_until ? new Date(o.hold_until).toLocaleDateString("en-NG", { dateStyle: "full" }) : "the date in your email"} (cash, POS or transfer). Bring your order number.</p>
+      )}
       <div className="flex flex-wrap gap-3">
         <Link href={`/track?ref=${o.reference}&contact=${encodeURIComponent(o.email)}`} className={buttonVariants({ variant: "outline", size: "sm" })}><Package />Track</Link>
         {paid && <a href={`/api/orders/${o.reference}/invoice`} className={buttonVariants({ variant: "outline", size: "sm" })}><Download />Invoice</a>}
@@ -53,10 +56,10 @@ export default async function OrderDetail({ params }: { params: Promise<{ ref: s
           <div className="flex justify-between border-t pt-2 font-semibold"><dt>Total</dt><dd>{formatNaira(+o.total)}</dd></div>
         </dl>
       </div>
-      {o.status === "delivered" && (
+      {(o.status === "delivered" || o.status === "collected") && (
         <form action={requestReturn} className="space-y-3 rounded-[28px] bg-white shadow-card dark:bg-card p-5">
           <input type="hidden" name="orderId" value={o.id} />
-          <label className="block text-sm font-semibold" htmlFor="reason">Request a swap (within 7 days of delivery)</label>
+          <label className="block text-sm font-semibold" htmlFor="reason">Request a swap (within 7 days of delivery or collection)</label>
           <p className="text-sm text-muted-foreground">Swaps only – no cash refunds. The product must be unused and in good condition: no scratches, no dents, and fully functioning.</p>
           <textarea id="reason" name="reason" required minLength={10} className="w-full rounded-xl border bg-background p-3 text-sm" placeholder="Which item would you like to swap, and what would you like instead?" />
           <label className="flex items-start gap-2 text-sm"><input type="checkbox" name="confirm" required className="mt-1 accent-electric" />I confirm the product is unused, has no scratches or dents and is fully functioning.</label>

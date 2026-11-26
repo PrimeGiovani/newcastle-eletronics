@@ -5,9 +5,7 @@ import { z } from "zod";
 import { createClient, requireRole } from "@/lib/supabase/server";
 import { ORDER_STATUSES } from "@/lib/types";
 import { slugify } from "@/lib/utils";
-import { sendEmail } from "@/lib/email";
-import { escapeHtml } from "@/lib/security";
-import { site } from "@/lib/config";
+import { receiptHtml, sendEmail, statusUpdateHtml } from "@/lib/email";
 
 async function staff(roles: ("admin" | "staff")[] = ["admin", "staff"]) {
   const me = await requireRole(roles);
@@ -115,17 +113,47 @@ export async function adjustStock(fd: FormData) {
 }
 
 /* ───────── Orders ───────── */
+const STATUS_SUBJECT: Record<string, string> = {
+  processing: "is being prepared", ready_for_pickup: "is ready for pickup", collected: "has been collected – thank you!",
+  shipped: "is on its way", delivered: "has been delivered", cancelled: "has been cancelled", refunded: "has been refunded", returned: "swap completed",
+};
 export async function updateOrderStatus(fd: FormData) {
   const { me, sb } = await staff();
   const p = z.object({ orderId: z.string().uuid(), status: z.enum(ORDER_STATUSES as [string, ...string[]]), note: z.string().max(500), tracking_number: z.string().max(100), carrier: z.string().max(100), notify: z.string().optional() }).parse(Object.fromEntries(fd));
-  const { data: o, error } = await sb.from("orders").update({ status: p.status, tracking_number: p.tracking_number || null, carrier: p.carrier || null }).eq("id", p.orderId).select("reference, email, customer_name").single();
-  if (error) throw new Error(error.message);
-  await sb.from("order_events").insert({ order_id: p.orderId, status: p.status, note: p.note || `Status changed to ${p.status}`, created_by: me.user.id });
+  const { data: cur } = await sb.from("orders").select("status, payment_method, delivery_method").eq("id", p.orderId).single();
+  // Cancelling an unpaid pay-at-store order must release the held stock
+  if (cur?.payment_method === "in_store" && cur.status === "pending" && p.status === "cancelled") {
+    const { error } = await sb.rpc("release_in_store_hold", { p_order_id: p.orderId, p_note: p.note || "Cancelled by staff – reservation released" });
+    if (error) throw new Error(error.message);
+  } else if (cur?.payment_method === "in_store" && cur.status === "pending" && p.status !== "pending") {
+    throw new Error("Use “Mark as paid in store” first – this order hasn't been paid yet.");
+  } else {
+    const { error } = await sb.from("orders").update({ status: p.status, tracking_number: p.tracking_number || null, carrier: p.carrier || null }).eq("id", p.orderId);
+    if (error) throw new Error(error.message);
+    await sb.from("order_events").insert({ order_id: p.orderId, status: p.status, note: p.note || `Status changed to ${p.status.replace(/_/g, " ")}`, created_by: me.user.id });
+  }
+  const { data: o } = await sb.from("orders").select("reference, email, customer_name").eq("id", p.orderId).single();
   if (p.notify === "on" && o) {
-    await sendEmail(o.email, `Your order ${o.reference} is now ${p.status}`,
-      `<p>Hi ${escapeHtml(o.customer_name)},</p><p>Your order <b>${escapeHtml(o.reference)}</b> status is now <b>${escapeHtml(p.status)}</b>.</p>${p.tracking_number ? `<p>Tracking: ${escapeHtml(p.carrier)} ${escapeHtml(p.tracking_number)}</p>` : ""}<p><a href="${site.url}/track?ref=${o.reference}">Track your order</a></p>`);
+    await sendEmail(o.email, `Your order ${o.reference} ${STATUS_SUBJECT[p.status] ?? `is now ${p.status.replace(/_/g, " ")}`}`,
+      statusUpdateHtml(o, p.status, { tracking: p.tracking_number, carrier: p.carrier, pickup: cur?.delivery_method === "pickup" }));
   }
   revalidatePath(`/admin/orders/${p.orderId}`);
+}
+
+/** Pay at store: staff confirms the customer has paid at the showroom → stock is deducted, receipt emailed. */
+export async function markPaidInStore(fd: FormData) {
+  const { sb } = await staff();
+  const p = z.object({ orderId: z.string().uuid(), method: z.enum(["cash", "pos", "transfer"]) }).parse(Object.fromEntries(fd));
+  const { data: done, error } = await sb.rpc("confirm_in_store_payment", { p_order_id: p.orderId, p_method: p.method });
+  if (error) throw new Error(error.message);
+  if (done) {
+    const { data: o } = await sb.from("orders").select("reference, email, customer_name, total, subtotal, shipping_fee, discount, order_items(name, quantity, unit_price)").eq("id", p.orderId).single();
+    if (o) await sendEmail(o.email, `Receipt for order ${o.reference}`, receiptHtml({
+      reference: o.reference, customer_name: o.customer_name, total: +o.total, subtotal: +o.subtotal, shipping_fee: +o.shipping_fee, discount: +o.discount,
+      items: (o.order_items as { name: string; quantity: number; unit_price: number }[]).map((i) => ({ ...i, unit_price: +i.unit_price })),
+    }));
+  }
+  revalidatePath(`/admin/orders/${p.orderId}`); revalidatePath("/admin/orders");
 }
 
 export async function updateReturn(fd: FormData) {

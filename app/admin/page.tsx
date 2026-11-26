@@ -8,7 +8,7 @@ export default async function AdminDashboard() {
   const sb = await createClient();
   const since = new Date(Date.now() - 30 * 864e5).toISOString();
   const [{ data: orders }, { data: low }, { count: customers }, { data: recent }, { data: top }, { count: openTickets }] = await Promise.all([
-    sb.from("orders").select("total, created_at, status, email").gte("created_at", since).in("status", ["paid", "processing", "shipped", "delivered"]),
+    sb.from("orders").select("total, created_at, status, email").gte("created_at", since).in("status", ["paid", "processing", "ready_for_pickup", "collected", "shipped", "delivered"]),
     sb.from("low_stock").select("*").limit(8),
     sb.from("profiles").select("id", { count: "exact", head: true }).eq("role", "customer"),
     sb.from("orders").select("id, reference, customer_name, total, status, created_at").order("created_at", { ascending: false }).limit(8),

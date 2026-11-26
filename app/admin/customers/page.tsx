@@ -7,7 +7,7 @@ export default async function Customers({ searchParams }: { searchParams: Promis
   const { q } = await searchParams;
   const sb = await createClient();
   const [{ data: orders }, { count: registered }] = await Promise.all([
-    sb.from("orders").select("email, customer_name, phone, total, created_at, user_id, reference").in("status", ["paid", "processing", "shipped", "delivered"]).order("created_at", { ascending: false }).limit(5000),
+    sb.from("orders").select("email, customer_name, phone, total, created_at, user_id, reference").in("status", ["paid", "processing", "ready_for_pickup", "collected", "shipped", "delivered"]).order("created_at", { ascending: false }).limit(5000),
     sb.from("profiles").select("id", { count: "exact", head: true }),
   ]);
   type Cust = { name: string; phone: string; orders: number; spent: number; last: string; registered: boolean; refs: string[] };

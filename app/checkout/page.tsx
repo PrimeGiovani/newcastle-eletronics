@@ -9,6 +9,7 @@ import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { DELIVERY_METHODS, FREE_SHIPPING_THRESHOLD, LGAS, NG_PHONE_PATTERN, STATES, normalizeNgPhone, shippingLabel, shippingQuote, type DeliveryMethod } from "@/lib/nigeria";
 import { features, site } from "@/lib/config";
 import { cn, formatNaira } from "@/lib/utils";
+import { IN_STORE_HOLD_DAYS } from "@/lib/types";
 
 const STEPS = ["Customer", "Delivery method", "Shipping address", "Payment", "Confirmation"] as const;
 type Addr = { id?: string; fullName: string; phone: string; line1: string; line2: string; landmark: string; city: string; lga: string; state: string };
@@ -23,6 +24,7 @@ export default function CheckoutPage() {
   const [signedIn, setSignedIn] = useState(false);
   const [saveAddress, setSaveAddress] = useState(true);
   const [method, setMethod] = useState<DeliveryMethod>("standard");
+  const [payment, setPayment] = useState<"paystack" | "in_store">("paystack");
   const [coupon, setCoupon] = useState<{ code: string; discount: number } | null>(null);
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
@@ -70,7 +72,7 @@ export default function CheckoutPage() {
       const res = await fetch("/api/checkout", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          customer, deliveryMethod: method, shipping: method === "standard" ? addr : undefined,
+          customer, deliveryMethod: method, paymentMethod: method === "pickup" ? payment : "paystack", shipping: method === "standard" ? addr : undefined,
           couponCode: coupon?.code, saveAddress: signedIn && saveAddress && !addr.id && method === "standard", notes,
           items: cart.map((l) => ({ productId: l.id, quantity: l.quantity })),
         }),
@@ -78,7 +80,7 @@ export default function CheckoutPage() {
       const j = await res.json();
       if (!res.ok) throw new Error(j.error ?? "Could not start payment");
       sessionStorage.removeItem("nce:coupon");
-      window.location.href = j.authorizationUrl; // Paystack hosted checkout (card, transfer, USSD, QR, mobile money)
+      window.location.href = j.inStore ? j.redirect : j.authorizationUrl; // Paystack hosted checkout (card, transfer, USSD, QR, mobile money)
     } catch (e) { setError((e as Error).message); setPaying(false); }
   }
 
@@ -190,13 +192,30 @@ export default function CheckoutPage() {
                   : <div><dt className="text-muted-foreground">Ship to</dt><dd className="font-medium">{addr.fullName}, {addr.line1}{addr.line2 && `, ${addr.line2}`}<br />{addr.city}, {addr.lga}, {addr.state}</dd></div>}
                 <div className="sm:col-span-2"><dt className="text-muted-foreground">Shipping</dt><dd className="font-medium">{method === "pickup" ? "Free showroom pickup – we'll call when it's ready" : ship.free ? "Free delivery" : "To be arranged – Newcastle will contact you after payment"}</dd></div>
               </dl>
-              <div className="rounded-2xl border p-5">
-                <p className="flex items-center gap-2 font-semibold"><Lock className="h-4 w-4 text-emerald-600" />Pay securely with Paystack</p>
-                <p className="mt-1 text-sm text-muted-foreground">You'll be redirected to Paystack to pay with any of:</p>
-                <ul className="mt-3 flex flex-wrap gap-2 text-xs font-medium">{["Debit/Credit card", "Bank transfer", "USSD", "Mobile money", "QR", "Bank account"].map((c) => <li key={c} className="rounded-full bg-muted px-3 py-1">{c}</li>)}</ul>
-              </div>
+              <fieldset className="space-y-3">
+                <legend className="mb-2 font-semibold">How would you like to pay?</legend>
+                <label className={cn("flex cursor-pointer items-start gap-4 rounded-2xl border p-4", (payment === "paystack" || method !== "pickup") && "border-electric ring-2 ring-electric/20")}>
+                  <input type="radio" name="payment" checked={payment === "paystack" || method !== "pickup"} onChange={() => setPayment("paystack")} className="mt-1 h-4 w-4 accent-electric" />
+                  <span className="flex-1">
+                    <b className="flex items-center gap-2"><Lock className="h-4 w-4 text-emerald-600" />Pay now with Paystack</b>
+                    <span className="mt-1 block text-sm text-muted-foreground">You'll be redirected to Paystack to pay securely with:</span>
+                    <span className="mt-2 flex flex-wrap gap-2 text-xs font-medium">{["Debit/Credit card", "Bank transfer", "USSD", "Mobile money", "QR", "Bank account"].map((c) => <span key={c} className="rounded-full bg-muted px-3 py-1">{c}</span>)}</span>
+                  </span>
+                </label>
+                <label className={cn("flex items-start gap-4 rounded-2xl border p-4", method === "pickup" ? "cursor-pointer" : "opacity-60", method === "pickup" && payment === "in_store" && "border-electric ring-2 ring-electric/20")}>
+                  <input type="radio" name="payment" disabled={method !== "pickup"} checked={method === "pickup" && payment === "in_store"} onChange={() => setPayment("in_store")} className="mt-1 h-4 w-4 accent-electric" />
+                  <span className="flex-1">
+                    <b className="flex items-center gap-2"><Store className="h-4 w-4 text-electric" />Pay at our showroom</b>
+                    <span className="mt-1 block text-sm text-muted-foreground">
+                      {method === "pickup"
+                        ? `We'll reserve your items for ${IN_STORE_HOLD_DAYS} days. Pay by cash, POS or transfer when you collect at ${site.addressLine}.`
+                        : <>Only available with showroom pickup. <button type="button" onClick={() => { setMethod("pickup"); setPayment("in_store"); }} className="font-medium text-electric underline">Switch to pickup</button></>}
+                    </span>
+                  </span>
+                </label>
+              </fieldset>
               {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-destructive dark:bg-red-950/30">{error}</p>}
-              <Button size="lg" variant="accent" className="w-full" onClick={pay} disabled={paying}>{paying ? <Loader2 className="animate-spin" /> : <Lock />}Pay {formatNaira(total)}</Button>
+              <Button size="lg" variant="accent" className="w-full" onClick={pay} disabled={paying}>{paying ? <Loader2 className="animate-spin" /> : method === "pickup" && payment === "in_store" ? <Store /> : <Lock />}{method === "pickup" && payment === "in_store" ? `Reserve order – pay ${formatNaira(total)} at the showroom` : `Pay ${formatNaira(total)}`}</Button>
               <p className="text-center text-xs text-muted-foreground">By placing your order you agree to our terms and our <Link href="/about#policies" className="underline">7-day swap policy</Link>. Need installation? Contact us after purchase – our trusted installers charge separately.</p>
             </div>
           )}
@@ -216,7 +235,7 @@ export default function CheckoutPage() {
             <div className="flex justify-between"><dt>Subtotal</dt><dd>{formatNaira(subtotal)}</dd></div>
             {coupon && coupon.discount > 0 && <div className="flex justify-between text-emerald-600"><dt>Coupon {coupon.code}</dt><dd>-{formatNaira(coupon.discount)}</dd></div>}
             <div className="flex justify-between"><dt>Shipping</dt><dd>{shippingLabel(ship, method)}</dd></div>
-            <div className="flex justify-between border-t pt-3 text-base font-semibold"><dt>Total to pay now</dt><dd>{formatNaira(total)}</dd></div>
+            <div className="flex justify-between border-t pt-3 text-base font-semibold"><dt>{method === "pickup" && payment === "in_store" ? "Total to pay at showroom" : "Total to pay now"}</dt><dd>{formatNaira(total)}</dd></div>
           </dl>
           {method === "standard" && ship.arrangeLater && <p className="mt-3 text-xs text-muted-foreground">Shipping for orders under {formatNaira(FREE_SHIPPING_THRESHOLD)} is arranged with Newcastle after payment.</p>}
           <p className="mt-3 text-xs text-muted-foreground">Final prices and stock are verified on our server before payment.</p>

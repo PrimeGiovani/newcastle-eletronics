@@ -23,5 +23,8 @@ export type ProductFilters = {
   sort?: "popular" | "newest" | "price-asc" | "price-desc" | "rating"; page?: number; perPage?: number;
 };
 
-export type OrderStatus = "pending" | "paid" | "processing" | "shipped" | "delivered" | "cancelled" | "refunded" | "return_requested" | "returned";
-export const ORDER_STATUSES: OrderStatus[] = ["pending", "paid", "processing", "shipped", "delivered", "cancelled", "refunded", "return_requested", "returned"];
+export type OrderStatus = "pending" | "paid" | "processing" | "ready_for_pickup" | "collected" | "shipped" | "delivered" | "cancelled" | "refunded" | "return_requested" | "returned";
+export const ORDER_STATUSES: OrderStatus[] = ["pending", "paid", "processing", "ready_for_pickup", "collected", "shipped", "delivered", "cancelled", "refunded", "return_requested", "returned"];
+export type PaymentMethod = "paystack" | "in_store";
+/** Pay-at-store reservations are held for this many days */
+export const IN_STORE_HOLD_DAYS = 3;

@@ -10,10 +10,11 @@ import { formatNaira, cn } from "@/lib/utils";
 export const metadata: Metadata = { title: "Track Your Order", description: "Track your Newcastle Electronics order with your order number and email or phone.", alternates: { canonical: "/track" } };
 export const dynamic = "force-dynamic";
 
-const FLOW = ["pending", "paid", "processing", "shipped", "delivered"] as const;
-const LABEL: Record<string, string> = { pending: "Order placed", paid: "Payment confirmed", processing: "Processing", shipped: "Shipped", delivered: "Delivered", cancelled: "Cancelled", refunded: "Refunded", return_requested: "Swap requested", returned: "Swapped" };
+const FLOW_DELIVERY = ["pending", "paid", "processing", "shipped", "delivered"];
+const FLOW_PICKUP = ["pending", "paid", "ready_for_pickup", "collected"];
+const LABEL: Record<string, string> = { pending: "Order placed", paid: "Payment confirmed", processing: "Processing", shipped: "Shipped", delivered: "Delivered", cancelled: "Cancelled", refunded: "Refunded", return_requested: "Swap requested", returned: "Swapped", ready_for_pickup: "Ready for pickup", collected: "Collected" };
 
-type Tracked = { reference: string; status: string; created_at: string; total: number; tracking_number: string | null; carrier: string | null; eta_from: string | null; eta_to: string | null; state: string; items: { name: string; quantity: number; image: string }[]; events: { status: string; note: string; at: string }[] };
+type Tracked = { reference: string; status: string; payment_method?: string; hold_until?: string | null; delivery_method?: string; created_at: string; total: number; tracking_number: string | null; carrier: string | null; eta_from: string | null; eta_to: string | null; state: string; items: { name: string; quantity: number; image: string }[]; events: { status: string; note: string; at: string }[] };
 
 export default async function TrackPage({ searchParams }: { searchParams: Promise<{ ref?: string; contact?: string }> }) {
   const { ref = "", contact = "" } = await searchParams;
@@ -23,7 +24,8 @@ export default async function TrackPage({ searchParams }: { searchParams: Promis
     const { data } = await createPublicClient().rpc("track_order", { p_reference: ref.slice(0, 64), p_contact: contact.slice(0, 100) });
     order = data as Tracked | null;
   }
-  const idx = order ? FLOW.indexOf(order.status as (typeof FLOW)[number]) : -1;
+  const FLOW = order?.delivery_method === "pickup" ? FLOW_PICKUP : FLOW_DELIVERY;
+  const idx = order ? FLOW.indexOf(order.status) : -1;
 
   return (
     <section className="container max-w-3xl py-12">
@@ -38,12 +40,15 @@ export default async function TrackPage({ searchParams }: { searchParams: Promis
         <div className="mt-8 space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl bg-muted/50 p-6">
             <div><p className="text-sm text-muted-foreground">Order</p><p className="text-lg font-semibold">{order.reference}</p></div>
-            <div><p className="text-sm text-muted-foreground">Status</p><p className="text-lg font-semibold text-electric">{LABEL[order.status]}</p></div>
+            <div><p className="text-sm text-muted-foreground">Status</p><p className="text-lg font-semibold text-electric">{order.payment_method === "in_store" && order.status === "pending" ? "Awaiting payment at store" : LABEL[order.status]}</p></div>
             {order.eta_from && <div><p className="text-sm text-muted-foreground">Estimated delivery</p><p className="font-semibold">{new Date(order.eta_from).toLocaleDateString("en-NG", { dateStyle: "medium" })} – {new Date(order.eta_to!).toLocaleDateString("en-NG", { dateStyle: "medium" })}</p></div>}
             {order.tracking_number && <div><p className="text-sm text-muted-foreground">{order.carrier ?? "Carrier"}</p><p className="font-semibold">{order.tracking_number}</p></div>}
           </div>
+          {order.payment_method === "in_store" && order.status === "pending" && (
+            <p className="rounded-2xl bg-amber-50 p-4 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">Reserved – please pay at our showroom{order.hold_until ? ` by ${new Date(order.hold_until).toLocaleDateString("en-NG", { dateStyle: "full" })}` : ""}. Cash, POS or transfer. Bring your order number.</p>
+          )}
           {idx >= 0 && (
-            <ol className="grid grid-cols-5 gap-2" aria-label="Order progress">
+            <ol className={cn("grid gap-2", FLOW.length === 4 ? "grid-cols-4" : "grid-cols-5")} aria-label="Order progress">
               {FLOW.map((s, i) => (
                 <li key={s} className="text-center text-xs">
                   {i <= idx ? <CheckCircle2 className="mx-auto h-7 w-7 text-electric" /> : <Circle className="mx-auto h-7 w-7 text-muted-foreground" />}
