@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -11,7 +11,6 @@ import { cn } from "@/lib/utils";
 import { features } from "@/lib/config";
 
 export function AuthForm() {
-  const router = useRouter();
   const sp = useSearchParams();
   const staffOnly = !features.customerAccounts;
   const next = sp.get("next")?.startsWith("/") && !sp.get("next")!.startsWith("//") ? sp.get("next")! : staffOnly ? "/admin" : "/account"; // prevent open redirects
@@ -30,7 +29,9 @@ export function AuthForm() {
     if (mode === "signin") {
       const { error } = await sb.auth.signInWithPassword({ email, password });
       if (error) { setError(error.message === "Invalid login credentials" ? "Incorrect email or password." : error.message); setLoading(false); return; }
-      router.replace(next); router.refresh();
+      // Full page load (not client navigation) so the server immediately sees the new session cookie.
+      // (router.replace + router.refresh together cancel the navigation and left the button spinning.)
+      window.location.assign(next);
     } else {
       const { data, error } = await sb.auth.signUp({
         email, password,
@@ -38,7 +39,7 @@ export function AuthForm() {
       });
       setLoading(false);
       if (error) { setError(/registered|exists/i.test(error.message) ? "An account with this email already exists – please sign in or reset your password." : error.message); return; }
-      if (data.session) { router.replace(next); router.refresh(); return; }                       // email confirmation turned off
+      if (data.session) { window.location.assign(next); return; }                       // email confirmation turned off
       if (data.user && data.user.identities?.length === 0) { setError("An account with this email already exists – please sign in or reset your password."); return; }
       setInfo("Almost done! We've emailed you a confirmation link. Click it to activate your account.");
     }

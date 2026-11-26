@@ -1,19 +1,18 @@
 "use client";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { features } from "@/lib/config";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 
 export default function UpdatePasswordPage() {
-  const router = useRouter();
   const [error, setError] = useState("");
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
     if (f.get("password") !== f.get("confirm")) { setError("Passwords don't match"); return; }
     const { error } = await createClient().auth.updateUser({ password: String(f.get("password")) });
-    if (error) setError(error.message); else router.replace("/account");
+    if (error) setError(error.message); else window.location.assign(features.customerAccounts ? "/account" : "/admin");
   }
   return (
     <section className="container flex min-h-[60vh] items-center justify-center py-12">
