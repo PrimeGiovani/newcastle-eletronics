@@ -36,14 +36,14 @@ export function Header() {
       <header className={cn("sticky top-0 z-40 bg-white/80 backdrop-blur-2xl backdrop-saturate-150 transition-[border-color,box-shadow] duration-300 dark:bg-black/75", scrolled ? "border-b border-black/5 dark:border-white/10" : "border-b border-transparent")}>
         <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-2 focus:z-50 focus:rounded-lg focus:bg-electric focus:px-4 focus:py-2 focus:text-white">Skip to content</a>
         <div className="container flex h-16 items-center gap-3 lg:h-[72px]">
-          <button className="-ml-2 grid h-10 w-10 place-items-center rounded-full hover:bg-muted lg:hidden" aria-label="Open menu" aria-expanded={open} onClick={() => setOpen(true)}><Menu className="h-5 w-5" /></button>
+          <button className="-ml-2 grid h-11 w-11 place-items-center rounded-full hover:bg-muted lg:hidden" aria-label="Open menu" aria-expanded={open} onClick={() => setOpen(true)}><Menu className="h-5 w-5" /></button>
           <Link href="/" className="flex shrink-0 items-center" aria-label="Newcastle Electronics – home">
             <Logo priority />
           </Link>
           <form onSubmit={submit} role="search" className="relative mx-auto hidden w-full max-w-xl md:block">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input value={q} onChange={(e) => setQ(e.target.value)} type="search" placeholder="Search ACs, sound systems, gas cookers, solar…" aria-label="Search products"
-              className="h-10 w-full rounded-full border-0 bg-cloud pl-11 pr-4 text-sm outline-none transition focus:bg-white focus:ring-2 focus:ring-electric/40 dark:bg-muted" />
+              className="h-10 w-full rounded-full border-0 bg-cloud pl-11 pr-4 text-base lg:text-sm outline-none transition focus:bg-white focus:ring-2 focus:ring-electric/40 dark:bg-muted" />
           </form>
           <nav className="ml-auto flex items-center gap-0.5 md:ml-0" aria-label="Account">
             <ThemeToggle />
@@ -53,8 +53,8 @@ export function Header() {
             <Link href="/wishlist" className="relative hidden h-10 w-10 place-items-center rounded-full hover:bg-muted sm:grid" aria-label={`Wishlist (${wishlist.length})`}>
               <Heart className="h-5 w-5" />{ready && wishlist.length > 0 && <Dot n={wishlist.length} />}
             </Link>
-            {features.customerAccounts && <Link href="/account" className="grid h-10 w-10 place-items-center rounded-full hover:bg-muted" aria-label="My account"><User className="h-5 w-5" /></Link>}
-            <Link href="/cart" className="relative grid h-10 w-10 place-items-center rounded-full hover:bg-muted" aria-label={`Cart (${count} items)`}>
+            {features.customerAccounts && <Link href="/account" className="grid h-11 w-11 place-items-center rounded-full hover:bg-muted" aria-label="My account"><User className="h-5 w-5" /></Link>}
+            <Link href="/cart" className="relative grid h-11 w-11 place-items-center rounded-full hover:bg-muted" aria-label={`Cart (${count} items)`}>
               <ShoppingBag className="h-5 w-5" />{ready && count > 0 && <Dot n={count} />}
             </Link>
           </nav>
@@ -62,7 +62,7 @@ export function Header() {
         <form onSubmit={submit} role="search" className="container pb-3 md:hidden">
           <div className="relative">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input value={q} onChange={(e) => setQ(e.target.value)} type="search" placeholder="Search Newcastle products" aria-label="Search products" className="h-10 w-full rounded-full border-0 bg-cloud pl-11 pr-4 text-sm outline-none focus:ring-2 focus:ring-electric/40 dark:bg-muted" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} type="search" placeholder="Search Newcastle products" aria-label="Search products" className="h-10 w-full rounded-full border-0 bg-cloud pl-11 pr-4 text-base lg:text-sm outline-none focus:ring-2 focus:ring-electric/40 dark:bg-muted" />
           </div>
         </form>
         <nav aria-label="Main" className="hidden lg:block">
@@ -83,7 +83,7 @@ export function Header() {
         <aside role="dialog" aria-modal="true" aria-label="Menu" className={cn("absolute inset-y-0 left-0 flex w-[86%] max-w-sm flex-col bg-background shadow-2xl transition-transform duration-300", open ? "translate-x-0" : "-translate-x-full")}>
           <div className="flex h-16 items-center justify-between border-b px-4">
             <span className="font-display text-lg font-semibold">Menu</span>
-            <button onClick={() => setOpen(false)} aria-label="Close menu" className="grid h-10 w-10 place-items-center rounded-full hover:bg-muted"><X className="h-5 w-5" /></button>
+            <button onClick={() => setOpen(false)} aria-label="Close menu" className="grid h-11 w-11 place-items-center rounded-full hover:bg-muted"><X className="h-5 w-5" /></button>
           </div>
           <ul className="flex-1 overflow-y-auto p-3">
             {mainNav.map((n) => (

@@ -6,6 +6,8 @@ import { createClient, requireRole } from "@/lib/supabase/server";
 import { ORDER_STATUSES } from "@/lib/types";
 import { slugify } from "@/lib/utils";
 import { receiptHtml, sendEmail, statusUpdateHtml } from "@/lib/email";
+import { confirmPayment } from "@/lib/orders";
+import { verifyTransaction } from "@/lib/paystack";
 
 async function staff(roles: ("admin" | "staff")[] = ["admin", "staff"]) {
   const me = await requireRole(roles);
@@ -154,6 +156,28 @@ export async function markPaidInStore(fd: FormData) {
     }));
   }
   revalidatePath(`/admin/orders/${p.orderId}`); revalidatePath("/admin/orders");
+}
+
+/** "Customer says they paid": ask Paystack directly. If the payment succeeded, the order is confirmed
+ *  exactly as if the customer had returned to the site (stock deducted, receipt + staff emails). */
+export async function recheckPaystackPayment(fd: FormData) {
+  await staff();
+  const p = z.object({ orderId: z.string().uuid(), reference: z.string().trim().min(4).max(64) }).parse(Object.fromEntries(fd));
+  let result: string;
+  try {
+    const tx = await verifyTransaction(p.reference);
+    if (tx.status !== "success") result = tx.status; // abandoned, failed, ongoing…
+    else {
+      const r = await confirmPayment(p.reference, tx);
+      result = r.ok ? ("already" in r && r.already ? "already" : "confirmed") : r.reason;
+    }
+  } catch (e) {
+    const msg = (e as Error).message ?? "";
+    result = /not found/i.test(msg) ? "not_on_paystack" : /PAYSTACK_SECRET_KEY/.test(msg) ? "no_key" : "error";
+    if (result === "error") console.error("recheck payment", p.reference, e);
+  }
+  revalidatePath(`/admin/orders/${p.orderId}`); revalidatePath("/admin/orders");
+  redirect(`/admin/orders/${p.orderId}?recheck=${result}`);
 }
 
 export async function updateReturn(fd: FormData) {

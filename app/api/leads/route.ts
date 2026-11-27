@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { leadSchema } from "@/lib/validation";
-import { normalizeNgPhone } from "@/lib/nigeria";
+import { normalizePhone } from "@/lib/nigeria";
 import { assertSameOrigin, clientIp, escapeHtml, rateLimit } from "@/lib/security";
 import { createAdminClient } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/email";
@@ -14,7 +14,7 @@ export async function POST(req: Request) {
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid form" }, { status: 400 });
   const v = parsed.data;
   if (v.website) return NextResponse.json({ ok: true }); // honeypot – silently drop bots
-  const phone = normalizeNgPhone(v.phone) ?? v.phone;
+  const phone = normalizePhone(v.phone) ?? v.phone;
 
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) { console.info("[lead – no database configured]", v.type, v.name, phone); return NextResponse.json({ ok: true }); }
   const sb = createAdminClient();

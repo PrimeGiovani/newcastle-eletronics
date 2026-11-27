@@ -103,7 +103,7 @@ Key functions:
 ## Order & payment flow
 | Payment | Flow | Stock |
 |---|---|---|
-| **Paystack** (delivery or pickup) | pending → *(Paystack webhook / callback verified)* **paid** → processing → shipped → delivered, or → ready_for_pickup → collected | Deducted when paid. Unpaid orders are auto-cancelled after 24h. |
+| **Paystack** (delivery or pickup) | pending → *(Paystack webhook / callback verified)* **paid** → processing → shipped → delivered, or → ready_for_pickup → collected | Deducted when paid. Orders still unpaid after 24h are checked with Paystack, then confirmed or auto-cancelled. |
 | **Pay at store** (pickup only) | pending, with a "reserved until" date (3 days) → *staff clicks "Mark as paid in store" (cash / POS / transfer)* **paid** → ready_for_pickup → collected | **Held** (`inventory.reserved`) when the order is placed and deducted when paid. Expired holds are released by the daily cron, and the customer is emailed. |
 
 Emails: Paystack paid → receipt to the customer and an alert to `ADMIN_NOTIFY_EMAIL`. Pay at store → "Order received – pay at showroom" to the customer, plus a staff alert, as soon as the order is placed; then a receipt when it's marked paid. Status changes email the customer when "Email customer" is ticked. Sending requires Resend (`RESEND_API_KEY`, `EMAIL_FROM`).

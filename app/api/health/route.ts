@@ -24,6 +24,12 @@ export async function GET(req: Request) {
   checks.NEXT_PUBLIC_SITE_URL = has("NEXT_PUBLIC_SITE_URL")
     ? { ok: !env.NEXT_PUBLIC_SITE_URL!.endsWith("/"), detail: env.NEXT_PUBLIC_SITE_URL!, fix: env.NEXT_PUBLIC_SITE_URL!.endsWith("/") ? "Remove the trailing slash" : undefined }
     : { ok: false, detail: "missing", fix: "Set to your live URL, e.g. https://www.newcastleelectronics.com (Paystack redirects customers back here)" };
+  try { // After paying, Paystack sends customers to NEXT_PUBLIC_SITE_URL/checkout/success, so it must be this site
+    const siteHost = new URL(env.NEXT_PUBLIC_SITE_URL ?? "").host.replace(/^www\./, "");
+    const reqHost = new URL(req.url).host;
+    if (siteHost && siteHost !== reqHost.replace(/^www\./, "") && !reqHost.endsWith(".vercel.app") && !reqHost.startsWith("localhost"))
+      checks.NEXT_PUBLIC_SITE_URL = { ok: false, detail: `${env.NEXT_PUBLIC_SITE_URL} but this site is ${reqHost}`, fix: `Paystack returns customers to this address after paying. Set it to https://${reqHost}, then redeploy` };
+  } catch { /* invalid URL is reported above */ }
 
   // ── Paystack ──
   const sk = env.PAYSTACK_SECRET_KEY?.trim() ?? "";
@@ -97,12 +103,26 @@ export async function GET(req: Request) {
   if ((anon ?? "").startsWith("sb_secret_")) checks.NEXT_PUBLIC_SUPABASE_ANON_KEY = { ok: false, detail: "this is a SECRET key – never put it in a NEXT_PUBLIC_ variable!", fix: "Use the Publishable key here, put the Secret key in SUPABASE_SERVICE_ROLE_KEY, then rotate the secret key in Supabase" };
 
   checks.CRON_SECRET = { ok: true, detail: "set" };
-  checks.RESEND_API_KEY = has("RESEND_API_KEY") ? { ok: true, detail: "set – receipts will be emailed" } : { ok: true, detail: "not set (optional) – receipts won't be emailed" };
+  checks.RESEND_API_KEY = has("RESEND_API_KEY") ? { ok: true, detail: "set – receipts will be emailed" } : { ok: false, detail: "not set – NO emails are sent (receipts, staff alerts)", fix: "Add RESEND_API_KEY in Vercel, then redeploy" };
+  checks.EMAIL_FROM = has("EMAIL_FROM") ? { ok: /@newcastleelectronics\.com>?$/i.test(env.EMAIL_FROM!.trim()), detail: env.EMAIL_FROM!.trim(), fix: /@newcastleelectronics\.com>?$/i.test(env.EMAIL_FROM!.trim()) ? undefined : "Use an address on your verified domain, e.g. Newcastle Electronics <info@newcastleelectronics.com>" } : { ok: false, detail: "not set", fix: 'Set EMAIL_FROM to "Newcastle Electronics <info@newcastleelectronics.com>"' };
+  const admins = (env.ADMIN_NOTIFY_EMAIL ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+  const mask = (e: string) => e.replace(/^(.)(.*)(@.*)$/, (_m, a, b, c) => a + "*".repeat(Math.max(1, b.length)) + c);
+  const bad = admins.filter((e) => !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e));
+  checks.ADMIN_NOTIFY_EMAIL = !admins.length
+    ? { ok: false, detail: "not set – staff get NO new-order alerts", fix: "Set ADMIN_NOTIFY_EMAIL in Vercel (several addresses separated by commas), then redeploy" }
+    : bad.length ? { ok: false, detail: `invalid address: ${bad.join(", ")}`, fix: "Separate addresses with commas only, e.g. admin@newcastleelectronics.com, onlineorder@newcastleelectronics.com" }
+    : { ok: true, detail: `${admins.length} recipient(s): ${admins.map(mask).join(", ")} – add &testEmail=1 to this URL to send a test` };
+  if (new URL(req.url).searchParams.get("testEmail") === "1" && admins.length) {
+    const { sendEmail } = await import("@/lib/email");
+    const r = await sendEmail(admins.join(","), "Test: Newcastle Electronics staff alerts are working", "<p>This is a test of new-order alerts from your website. If you received it, staff notifications are set up correctly.</p>");
+    checks.TEST_EMAIL = r.ok ? { ok: true, detail: `sent to ${admins.length} address(es) – check each inbox (and spam folder)` } : { ok: false, detail: r.error ?? "failed", fix: r.error?.includes("domain") ? "Verify newcastleelectronics.com in Resend (DNS records) and use that domain in EMAIL_FROM" : "See the error above; check RESEND_API_KEY and EMAIL_FROM" };
+  }
 
   const paymentsReady = ["PAYSTACK_SECRET_KEY", "NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY", "NEXT_PUBLIC_SITE_URL", "STOREFRONT_CATALOGUE"].every((k) => checks[k]?.ok) && checks.SUPABASE_SEED?.ok !== false;
   return NextResponse.json({
     paymentsReady,
     webhookUrl: `${(env.NEXT_PUBLIC_SITE_URL ?? "https://YOUR-DOMAIN").replace(/\/$/, "")}/api/paystack/webhook`,
+    webhookHint: "Paste webhookUrl into Paystack → Settings → API Keys & Webhooks → Webhook URL (for the same Test/Live mode as your keys). It confirms orders even if the customer closes the browser after paying.",
     reminder: "After changing environment variables in Vercel you must REDEPLOY for them to take effect.",
     checks,
   }, { headers: { "Cache-Control": "no-store" } });

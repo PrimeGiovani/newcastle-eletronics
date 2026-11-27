@@ -12,13 +12,13 @@ export default function AboutPage() {
         <p className="eyebrow">About Newcastle</p>
         <h1 className="mx-auto mt-3 max-w-4xl text-5xl font-semibold tracking-tightest sm:text-7xl">{site.tagline}.</h1>
         <p className="mx-auto mt-6 max-w-2xl text-lg text-ink-muted sm:text-xl dark:text-white/70">
-          For over 30 years, Newcastle Electronics has designed and manufactured every product we sell — inverter air conditioners, sound systems, gas cookers, home appliances and, now, solar solutions. One brand, one standard, built for Nigerian homes and power conditions.
+          For over 30 years, Newcastle Electronics has designed and manufactured every product we sell: inverter air conditioners, sound systems, gas cookers, home appliances and, now, solar solutions. One brand, one standard, built for Nigerian homes and power conditions.
         </p>
         <div className="relative mx-auto mt-12 aspect-[3/2] max-w-5xl overflow-hidden rounded-[28px] bg-cloud shadow-soft"><Image src="/about-lagos.jpg" alt="Lagos skyline and highway with a Newcastle Electronics speaker – serving Nigerian homes for over 30 years" fill priority sizes="(min-width:1024px) 1024px, 100vw" className="object-cover" /></div>
       </section>
       <section className="section bg-cloud dark:bg-[#1D1D1F]">
         <div className="container grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {([[Factory, "30+ years of making it", "Three decades designing and manufacturing — we control quality from design to delivery."], [ShieldCheck, "We stand behind it", "Manufacturer warranty serviced by our own technicians."], [Users, "Customer-first", "Talk to real people by phone, email or WhatsApp."], [Heart, "Built for Nigeria", "Wide-voltage, generator- and solar-friendly engineering."]] as const).map(([I, t, d]) => (
+          {([[Factory, "30+ years of making it", "Three decades designing and manufacturing. We control quality from design to delivery."], [ShieldCheck, "We stand behind it", "Manufacturer warranty serviced by our own technicians."], [Users, "Customer-first", "Talk to real people by phone, email or WhatsApp."], [Heart, "Built for Nigeria", "Wide-voltage, generator- and solar-friendly engineering."]] as const).map(([I, t, d]) => (
             <div key={t} className="reveal rounded-[28px] bg-white p-8 shadow-card dark:bg-card"><I className="h-8 w-8 text-electric" strokeWidth={1.5} /><h2 className="mt-6 text-xl font-semibold tracking-tight">{t}</h2><p className="mt-2 text-ink-muted dark:text-white/70">{d}</p></div>
           ))}
         </div>

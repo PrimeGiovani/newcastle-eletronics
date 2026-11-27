@@ -11,15 +11,23 @@ import { formatNaira } from "@/lib/utils";
 export const metadata: Metadata = { title: "Order confirmation", robots: { index: false } };
 export const dynamic = "force-dynamic";
 
-export default async function SuccessPage({ searchParams }: { searchParams: Promise<{ reference?: string; trxref?: string }> }) {
+/** Extract a clean order reference however it arrives (duplicates, "?trxref=" glued on, arrays). */
+function cleanRef(v: string | string[] | undefined): string {
+  const all = (Array.isArray(v) ? v : v ? [v] : []).flatMap((x) => x.split(/[?&,]/)).map((x) => x.replace(/^(trxref|reference)=/, "").trim());
+  return all.find((x) => /^NCE-[A-Z0-9-]{4,40}$/i.test(x))?.toUpperCase() ?? (all[0] ?? "").slice(0, 64);
+}
+
+export default async function SuccessPage({ searchParams }: { searchParams: Promise<{ reference?: string | string[]; trxref?: string | string[] }> }) {
   const sp = await searchParams;
-  const ref = (sp.reference ?? sp.trxref ?? "").slice(0, 64);
+  const ref = cleanRef(sp.reference) || cleanRef(sp.trxref);
 
   // Pay-at-store reservation?
   let inStore: { total: number; hold_until: string; status: string } | null = null;
+  let alreadyPaid = false;
   if (ref && process.env.SUPABASE_SERVICE_ROLE_KEY) {
     const { data } = await createAdminClient().from("orders").select("payment_method, total, hold_until, status").eq("reference", ref).maybeSingle();
     if (data?.payment_method === "in_store") inStore = { total: Number(data.total), hold_until: data.hold_until, status: data.status };
+    else if (data && !["pending", "cancelled"].includes(data.status)) alreadyPaid = true; // Paystack webhook already confirmed it
   }
   if (inStore) {
     const until = inStore.hold_until ? new Date(inStore.hold_until).toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long" }) : "";
@@ -42,8 +50,8 @@ export default async function SuccessPage({ searchParams }: { searchParams: Prom
     );
   }
 
-  let ok = false, reason = "missing_reference";
-  if (ref) {
+  let ok = alreadyPaid, reason = alreadyPaid ? "" : "missing_reference";
+  if (ref && !alreadyPaid) {
     try { const r = await confirmPayment(ref); ok = r.ok; reason = r.ok ? "" : r.reason; }
     catch (e) { console.error(e); reason = "verification_error"; }
   }
@@ -65,7 +73,7 @@ export default async function SuccessPage({ searchParams }: { searchParams: Prom
         <>
           <XCircle className="mx-auto h-16 w-16 text-destructive" />
           <h1 className="mt-5 text-3xl font-semibold tracking-tightest">We couldn't confirm your payment</h1>
-          <p className="mt-3 text-muted-foreground">{reason === "abandoned" ? "The payment was not completed." : "If you were debited, don't worry — we'll confirm automatically within minutes."} Reference: {ref || "—"}</p>
+          <p className="mt-3 text-muted-foreground">{reason === "abandoned" ? "The payment was not completed." : "If you were debited, don't worry. We'll confirm your payment automatically within a few minutes."} Reference: {ref || "—"}</p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link href="/checkout" className={buttonVariants({ size: "lg" })}>Try again</Link>
             <a href={waLink("support", ref)} target="_blank" rel="noopener noreferrer" className={buttonVariants({ variant: "whatsapp", size: "lg" })}>Contact support</a>

@@ -6,7 +6,7 @@ import { Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
-import { NG_PHONE_PATTERN, normalizeNgPhone } from "@/lib/nigeria";
+import { PHONE_HINT, PHONE_PATTERN, normalizePhone } from "@/lib/nigeria";
 import { cn } from "@/lib/utils";
 import { features } from "@/lib/config";
 
@@ -35,7 +35,7 @@ export function AuthForm() {
     } else {
       const { data, error } = await sb.auth.signUp({
         email, password,
-        options: { emailRedirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent(next)}`, data: { full_name: f.get("fullName"), phone: normalizeNgPhone(String(f.get("phone"))) } },
+        options: { emailRedirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent(next)}`, data: { full_name: f.get("fullName"), phone: normalizePhone(String(f.get("phone"))) } },
       });
       setLoading(false);
       if (error) { setError(/registered|exists/i.test(error.message) ? "An account with this email already exists – please sign in or reset your password." : error.message); return; }
@@ -73,7 +73,7 @@ export function AuthForm() {
       <form onSubmit={submit} className="space-y-4">
         {mode === "signup" && <>
           <Field label="Full name"><Input name="fullName" required autoComplete="name" className="mt-1.5" /></Field>
-          <Field label="Phone number"><Input name="phone" type="tel" required pattern={NG_PHONE_PATTERN} autoComplete="tel" className="mt-1.5" /></Field>
+          <Field label="Phone number" hint={PHONE_HINT}><Input name="phone" type="tel" inputMode="tel" required pattern={PHONE_PATTERN} autoComplete="tel" className="mt-1.5" /></Field>
         </>}
         <Field label="Email"><Input name="email" type="email" required autoComplete="email" className="mt-1.5" /></Field>
         <Field label="Password" hint={mode === "signup" ? "At least 8 characters, with letters and numbers" : undefined}><Input name="password" type="password" required minLength={mode === "signup" ? 8 : 1} autoComplete={mode === "signin" ? "current-password" : "new-password"} className="mt-1.5" /></Field>

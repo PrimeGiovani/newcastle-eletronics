@@ -10,7 +10,7 @@ export function SolarCalculator() {
   const [sun, setSun] = useState(4.5);
   const r = useMemo(() => sizeSolarSystem(items, { sunHours: sun }), [items, sun]);
   const set = (i: number, patch: Partial<Appliance>) => setItems((xs) => xs.map((x, j) => (j === i ? { ...x, ...patch } : x)));
-  const cell = "h-9 w-full rounded-lg border bg-background px-2 text-sm";
+  const cell = "h-10 w-full rounded-lg border bg-background px-2 text-base lg:h-9 lg:text-sm";
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_380px]">

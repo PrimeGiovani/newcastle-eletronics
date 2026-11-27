@@ -1,16 +1,16 @@
 import { z } from "zod";
-import { normalizeNgPhone, STATES } from "./nigeria";
+import { normalizePhone, STATES } from "./nigeria";
 
-export const ngPhone = z.string().trim().transform((v, ctx) => {
-  const n = normalizeNgPhone(v);
-  if (!n) { ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Enter a valid Nigerian phone number, e.g. 0803 123 4567" }); return z.NEVER; }
+export const phoneNumber = z.string().trim().transform((v, ctx) => {
+  const n = normalizePhone(v);
+  if (!n) { ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Enter a valid phone number. Include your country code if outside Nigeria, e.g. +44 7700 900123" }); return z.NEVER; }
   return n;
 });
 const stateName = z.string().refine((s) => STATES.some((x) => x.name === s), "Select a valid state");
 
 export const addressSchema = z.object({
   fullName: z.string().trim().min(2).max(100),
-  phone: ngPhone,
+  phone: phoneNumber,
   line1: z.string().trim().min(4, "Enter your street address").max(200),
   line2: z.string().trim().max(200).optional().default(""),
   landmark: z.string().trim().max(120).optional().default(""),
@@ -21,7 +21,7 @@ export const addressSchema = z.object({
 export type AddressInput = z.infer<typeof addressSchema>;
 
 export const checkoutSchema = z.object({
-  customer: z.object({ email: z.string().trim().toLowerCase().email(), fullName: z.string().trim().min(2).max(100), phone: ngPhone }),
+  customer: z.object({ email: z.string().trim().toLowerCase().email(), fullName: z.string().trim().min(2).max(100), phone: phoneNumber }),
   deliveryMethod: z.enum(["standard", "pickup"]),
   /** paystack = pay online now; in_store = reserve online, pay at the showroom (pickup only) */
   paymentMethod: z.enum(["paystack", "in_store"]).default("paystack"),
@@ -52,7 +52,7 @@ export const leadSchema = z.object({
 }).superRefine((v, ctx) => {
   if (v.type === "newsletter") { if (!v.email) ctx.addIssue({ code: "custom", path: ["email"], message: "Email is required" }); return; }
   if (v.name.length < 2) ctx.addIssue({ code: "custom", path: ["name"], message: "Please enter your name" });
-  if (!normalizeNgPhone(v.phone)) ctx.addIssue({ code: "custom", path: ["phone"], message: "Enter a valid Nigerian phone number" });
+  if (!normalizePhone(v.phone)) ctx.addIssue({ code: "custom", path: ["phone"], message: "Enter a valid phone number. Include your country code if outside Nigeria, e.g. +44 7700 900123" });
 });
 
 export const reviewSchema = z.object({

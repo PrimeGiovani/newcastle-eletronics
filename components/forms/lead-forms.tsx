@@ -3,7 +3,7 @@ import { useState } from "react";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
-import { STATES, NG_PHONE_PATTERN } from "@/lib/nigeria";
+import { STATES, PHONE_HINT, PHONE_PATTERN } from "@/lib/nigeria";
 import { waLink } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
@@ -19,8 +19,8 @@ async function submitLead(payload: Record<string, unknown>) {
 const COPY: Record<LeadType, { cta: string; success: string; messageLabel: string; productLabel?: string }> = {
   quote: { cta: "Request Quotation", success: "Your quotation request has been received.", messageLabel: "Quantities, location & any details", productLabel: "Product(s) of interest" },
   contact: { cta: "Send Message", success: "Thanks! Your message has been received.", messageLabel: "How can we help?" },
-  installation: { cta: "Book Installation", success: "Installation request received — we'll confirm your slot.", messageLabel: "Address & access notes", productLabel: "Appliance to install (e.g. 1.5HP split AC)" },
-  solar_consultation: { cta: "Request Free Consultation", success: "Consultation booked — a solar engineer will call you.", messageLabel: "Tell us about your power needs", productLabel: "Property type (home, office, shop…)" },
+  installation: { cta: "Book Installation", success: "Installation request received. We'll confirm your slot.", messageLabel: "Address & access notes", productLabel: "Appliance to install (e.g. 1.5HP split AC)" },
+  solar_consultation: { cta: "Request Free Consultation", success: "Consultation booked. A solar engineer will call you.", messageLabel: "Tell us about your power needs", productLabel: "Property type (home, office, shop…)" },
   support: { cta: "Open Support Ticket", success: "Ticket opened. Our support team will respond shortly.", messageLabel: "Describe the issue", productLabel: "Order number (if any)" },
 };
 
@@ -48,7 +48,7 @@ export function LeadForm({ type, defaultProduct = "", meta, showDate, className 
   return (
     <form onSubmit={onSubmit} className={cn("grid gap-4 sm:grid-cols-2", className)}>
       <Field label="Full name *"><Input name="name" required minLength={2} autoComplete="name" className="mt-1.5" /></Field>
-      <Field label="Phone number *" hint="e.g. 0803 123 4567"><Input name="phone" type="tel" required pattern={NG_PHONE_PATTERN} inputMode="tel" autoComplete="tel" className="mt-1.5" title="Nigerian phone number, e.g. 08031234567" /></Field>
+      <Field label="Phone number *" hint={PHONE_HINT}><Input name="phone" type="tel" required pattern={PHONE_PATTERN} inputMode="tel" autoComplete="tel" className="mt-1.5" title="Phone number with country code if outside Nigeria, e.g. +44 7700 900123" /></Field>
       <Field label="Email"><Input name="email" type="email" autoComplete="email" className="mt-1.5" /></Field>
       <Field label="State">
         <Select name="state" defaultValue="Lagos" className="mt-1.5">{STATES.map((s) => <option key={s.name}>{s.name}</option>)}</Select>
@@ -73,12 +73,12 @@ export function NewsletterForm({ dark }: { dark?: boolean }) {
     try { await submitLead({ type: "newsletter", email: new FormData(e.currentTarget).get("email") }); setState("done"); }
     catch (err) { setError((err as Error).message); setState("idle"); }
   }
-  if (state === "done") return <p role="status" className={cn("text-sm font-medium", dark ? "text-emerald-300" : "text-emerald-700")}>You're subscribed — welcome aboard! 🎉</p>;
+  if (state === "done") return <p role="status" className={cn("text-sm font-medium", dark ? "text-emerald-300" : "text-emerald-700")}>You're subscribed. Welcome aboard!</p>;
   return (
     <form onSubmit={onSubmit} className="flex gap-2">
       <label className="sr-only" htmlFor={dark ? "nl-footer" : "nl"}>Email address</label>
       <input id={dark ? "nl-footer" : "nl"} name="email" type="email" required placeholder="you@example.com" autoComplete="email"
-        className={cn("h-11 min-w-0 flex-1 rounded-full px-4 text-sm outline-none focus:ring-2 focus:ring-electric", dark ? "bg-white/10 text-white placeholder:text-white/50" : "border border-input bg-white dark:bg-muted")} />
+        className={cn("h-11 min-w-0 flex-1 rounded-full px-4 text-base lg:text-sm outline-none focus:ring-2 focus:ring-electric", dark ? "bg-white/10 text-white placeholder:text-white/50" : "border border-input bg-white dark:bg-muted")} />
       <Button type="submit" variant="accent" disabled={state === "loading"}>{state === "loading" ? <Loader2 className="animate-spin" /> : "Subscribe"}</Button>
       {error && <p role="alert" className="sr-only">{error}</p>}
     </form>

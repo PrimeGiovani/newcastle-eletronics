@@ -36,7 +36,7 @@ export default async function HomePage() {
           <p className="animate-fade-up text-sm font-semibold text-flame sm:text-base">New arrivals · Newcastle Gas Hobs</p>
           <h1 className="mx-auto mt-3 max-w-4xl animate-fade-up text-5xl font-semibold tracking-tightest [animation-delay:80ms] sm:text-7xl lg:text-[88px] lg:leading-[1.02]">Smart Living Made Easy.</h1>
           <p className="mx-auto mt-5 max-w-2xl animate-fade-up text-lg text-ink-muted [animation-delay:160ms] sm:text-2xl sm:leading-snug dark:text-white/70">
-            Kitchen appliances, air conditioners and sound systems — designed and manufactured by Newcastle. Solar coming soon. Free delivery on orders over ₦2M.
+            Kitchen appliances, air conditioners and sound systems, designed and manufactured by Newcastle. Solar coming soon. Free delivery on orders over ₦2M.
           </p>
           <div className="mt-9 flex animate-fade-up flex-col justify-center gap-3 [animation-delay:240ms] sm:flex-row">
             <Link href="/shop" className={buttonVariants({ variant: "electric", size: "lg" })}>Shop Now</Link>
@@ -101,7 +101,7 @@ export default async function HomePage() {
       {/* 5 ─ NEW ARRIVALS: Gas Hobs */}
       <section className="section bg-cloud dark:bg-[#1D1D1F]">
         <div className="container">
-          <SectionHeader center eyebrow="New arrivals" title="Newcastle Gas Hobs." subtitle="2- to 5-burner hobs in flip-up glass and stainless steel — including gas + electric models with timers and flame-safety devices." />
+          <SectionHeader center eyebrow="New arrivals" title="Newcastle Gas Hobs." subtitle="2- to 5-burner hobs in flip-up glass and stainless steel, including gas + electric models with timers and flame-safety devices." />
           <div className="grid gap-5 lg:grid-cols-2">
             <Link href="/category/gas-hobs" className="reveal group relative flex min-h-[500px] flex-col items-center overflow-hidden rounded-[28px] bg-white px-6 pt-12 text-center dark:bg-card">
               <p className="text-sm font-semibold text-flame">New</p>
@@ -133,7 +133,7 @@ export default async function HomePage() {
       {onSale.length > 0 && (
         <section className="section bg-cloud dark:bg-[#1D1D1F]">
           <div className="container">
-            <SectionHeader center eyebrow="On sale" title="15% off selected models." subtitle="Standing air conditioners, home theatre, gas hob and range hood — while stocks last." />
+            <SectionHeader center eyebrow="On sale" title="15% off selected models." subtitle="Standing air conditioners, home theatre, gas hob and range hood, while stocks last." />
             <ProductGrid products={onSale} />
             <div className="mt-10 text-center"><Link href="/deals" className="link-arrow">See all deals <ChevronRight className="h-4 w-4" /></Link></div>
           </div>
@@ -167,9 +167,9 @@ export default async function HomePage() {
 
       {/* 9 ─ WHY NEWCASTLE */}
       <section className="section container">
-        <SectionHeader center eyebrow="Why Newcastle" title="We make it. We stand behind it." subtitle="Every Newcastle product is designed and manufactured by us — so you get better quality control, fairer prices and real accountability." />
+        <SectionHeader center eyebrow="Why Newcastle" title="We make it. We stand behind it." subtitle="Every Newcastle product is designed and manufactured by us, so you get better quality control, fairer prices and real accountability." />
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {([[Factory, "30+ years of manufacturing", "Over three decades designing and building electronics — one brand, one standard, from design to delivery."], [CreditCard, "Factory-direct pricing", "No middlemen. Pay by card, transfer, USSD or QR via Paystack."], [Zap, "Built for Nigerian homes", "Products designed for Nigerian kitchens, homes and power conditions."], [ShieldCheck, "7-day swap policy", "Swap unused products in good condition within 7 days. Backed by the Newcastle manufacturer warranty."], [Truck, "Free delivery over ₦2M", "Free delivery on orders of ₦2,000,000+, and free pickup at our Iyana Iba, Ojo showroom."], [Headphones, "Real human support", "Call 0810 902 4035 or WhatsApp 0706 837 6168 to talk to our team directly."]] as const).map(([I, t, d]) => (
+          {([[Factory, "30+ years of manufacturing", "Over three decades designing and building electronics. One brand, one standard, from design to delivery."], [CreditCard, "Factory-direct pricing", "No middlemen. Pay by card, transfer, USSD or QR via Paystack."], [Zap, "Built for Nigerian homes", "Products designed for Nigerian kitchens, homes and power conditions."], [ShieldCheck, "7-day swap policy", "Swap unused products in good condition within 7 days. Backed by the Newcastle manufacturer warranty."], [Truck, "Free delivery over ₦2M", "Free delivery on orders of ₦2,000,000+, and free pickup at our Iyana Iba, Ojo showroom."], [Headphones, "Real human support", "Call 0810 902 4035 or WhatsApp 0706 837 6168 to talk to our team directly."]] as const).map(([I, t, d]) => (
             <div key={t} className="reveal rounded-[28px] bg-cloud p-8 dark:bg-muted">
               <I className="h-8 w-8 text-electric" strokeWidth={1.5} />
               <h3 className="mt-6 text-xl font-semibold tracking-tight">{t}</h3>
@@ -186,7 +186,7 @@ export default async function HomePage() {
           <div className="p-10 sm:p-16">
             <p className="eyebrow">Installation services</p>
             <h2 className="mt-2 text-4xl font-semibold tracking-tightest sm:text-5xl">Trusted installers, on request.</h2>
-            <p className="mt-4 text-lg text-ink-muted dark:text-white/70">Newcastle works with trusted installers for air conditioners, gas hobs, range hoods and ovens. Installation is a separate service with its own charge — contact us after purchase to arrange it.</p>
+            <p className="mt-4 text-lg text-ink-muted dark:text-white/70">Newcastle works with trusted installers for air conditioners, gas hobs, range hoods and ovens. Installation is a separate service with its own charge, contact us after purchase to arrange it.</p>
             <ul className="mt-6 space-y-3 text-[15px]">{["Installers vetted by Newcastle", "Charge confirmed before any work starts", "Book by WhatsApp, phone or online form"].map((t) => <li key={t} className="flex gap-3"><Wrench className="h-5 w-5 shrink-0 text-electric" strokeWidth={1.5} />{t}</li>)}</ul>
             <Link href="/installation" className={cn(buttonVariants({ size: "lg" }), "mt-8")}>Enquire about installation</Link>
           </div>
@@ -202,7 +202,7 @@ export default async function HomePage() {
             <Sun className="h-10 w-10 text-flame" strokeWidth={1.5} />
             <p className="mt-4 text-sm font-semibold text-flame">Coming soon</p>
             <h2 className="mt-2 max-w-3xl text-4xl font-semibold tracking-tightest sm:text-6xl">Newcastle Solar.</h2>
-            <p className="mt-4 max-w-xl text-lg text-white/75">Portable power stations, all-in-one ESS, lithium batteries, inverters, solar panels and street lights. Enquire now or book ahead — and size your system with our solar calculator.</p>
+            <p className="mt-4 max-w-xl text-lg text-white/75">Portable power stations, all-in-one ESS, lithium batteries, inverters, solar panels and street lights. Enquire now or book ahead, and size your system with our solar calculator.</p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Link href="/solar-solutions#calculator" className={buttonVariants({ variant: "electric", size: "lg" })}><Calculator />Solar calculator</Link>
               <Link href="/solar-solutions" className={cn(buttonVariants({ size: "lg" }), "bg-white text-ink hover:bg-white/90")}>Enquire / book ahead</Link>
@@ -256,7 +256,7 @@ export default async function HomePage() {
       <section className="container">
         <div className="tile reveal flex flex-col items-center px-6 py-16 text-center sm:py-20">
           <h2 className="text-3xl font-semibold tracking-tightest sm:text-5xl">Be the first to know.</h2>
-          <p className="mt-3 max-w-lg text-lg text-ink-muted dark:text-white/70">New Newcastle products, flash deals and energy-saving tips. No spam — unsubscribe anytime.</p>
+          <p className="mt-3 max-w-lg text-lg text-ink-muted dark:text-white/70">New Newcastle products, flash deals and energy-saving tips. No spam, unsubscribe anytime.</p>
           <div className="mt-8 w-full max-w-md"><NewsletterForm /></div>
         </div>
       </section>

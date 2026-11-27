@@ -12,7 +12,7 @@ export const IMG = {
   living: u("photo-1600210492486-724fe5c67fb0", 1600), install: u("photo-1581092160562-40aa08e78837", 1400),
 };
 
-/** Local studio-style renders (public/products) – replace with real product photography via Admin → Products. */
+/** Product illustrations in public/products – replace with product photography via Admin → Products. */
 export const ART = (name: string) => [`/products/${name}.svg`, `/products/${name}-dark.svg`];
 
 export const categories: Category[] = [

@@ -5,12 +5,25 @@ import { formatNaira } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
 import { StatusBadge } from "../../../account/status-badge";
-import { markPaidInStore, updateOrderStatus, updateReturn } from "../../actions";
+import { markPaidInStore, recheckPaystackPayment, updateOrderStatus, updateReturn } from "../../actions";
 import { PageTitle, Table, Td } from "../../ui";
 
 /** Fulfilment workflow: paid → processing (picked/packed) → shipped (tracking) → delivered. */
-export default async function AdminOrder({ params }: { params: Promise<{ id: string }> }) {
+const RECHECK: Record<string, { ok: boolean; text: string }> = {
+  confirmed: { ok: true, text: "Paystack confirmed the payment. The order is now paid, stock has been updated, and the receipt and staff emails have been sent." },
+  already: { ok: true, text: "Paystack shows this payment succeeded and the order was already updated." },
+  abandoned: { ok: false, text: "Paystack says the customer did not complete the payment (abandoned)." },
+  failed: { ok: false, text: "Paystack says the payment failed. The customer was not charged." },
+  ongoing: { ok: false, text: "The payment is still in progress on Paystack (e.g. a bank transfer). Check again later." },
+  not_on_paystack: { ok: false, text: "Paystack has no payment with this reference. The customer did not reach the payment page." },
+  amount_mismatch: { ok: false, text: "The amount paid on Paystack doesn't match the order total, so the order was cancelled. Check this transaction in your Paystack dashboard." },
+  no_key: { ok: false, text: "PAYSTACK_SECRET_KEY is not set in Vercel, so Paystack can't be checked." },
+  error: { ok: false, text: "Couldn't reach Paystack or the database. Please try again in a minute." },
+};
+
+export default async function AdminOrder({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ recheck?: string }> }) {
   const { id } = await params;
+  const { recheck } = await searchParams;
   const sb = await createClient();
   const { data: o } = await sb.from("orders").select("*, order_items(*), order_events(*), payments(*), returns(*)").eq("id", id).single();
   if (!o) notFound();
@@ -22,10 +35,13 @@ export default async function AdminOrder({ params }: { params: Promise<{ id: str
     ? { paid: "ready_for_pickup", processing: "ready_for_pickup", ready_for_pickup: "collected", return_requested: "returned" }
     : { paid: "processing", processing: "shipped", shipped: "delivered", return_requested: "returned" };
   const awaitingStorePayment = o.payment_method === "in_store" && o.status === "pending";
+  const canRecheck = o.payment_method !== "in_store" && ["pending", "cancelled"].includes(o.status);
+  const recheckMsg = recheck ? RECHECK[recheck] ?? { ok: false, text: `Paystack status: ${recheck.slice(0, 40)}` } : null;
   const LABEL = (s: string) => s.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
   return (
     <>
       <PageTitle action={<StatusBadge status={o.status} />}>Order {o.reference}</PageTitle>
+      {recheckMsg && <p role="status" className={`mb-6 rounded-2xl p-4 text-sm font-medium ${recheckMsg.ok ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300" : "bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300"}`}>{recheckMsg.text}</p>}
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
         <div className="space-y-6">
           <Table head={["Item", "SKU", "Qty", "Unit", "Total"]}>
@@ -73,6 +89,14 @@ export default async function AdminOrder({ params }: { params: Promise<{ id: str
             <p className="mt-1">{o.payment_method === "in_store" ? <>Pay at store{o.paid_in_store_by ? ` · paid by ${String(o.paid_in_store_by).toUpperCase()}` : ""}</> : "Paystack (online)"}</p>
             {awaitingStorePayment && o.hold_until && <p className="mt-1 text-amber-700 dark:text-amber-300">Items held until {new Date(o.hold_until).toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short" })}. Released automatically if not paid.</p>}
           </div>
+          {canRecheck && (
+            <form action={recheckPaystackPayment} className="space-y-3 rounded-3xl border p-5 text-sm">
+              <input type="hidden" name="orderId" value={o.id} /><input type="hidden" name="reference" value={o.reference} />
+              <p className="font-semibold">Customer says they paid?</p>
+              <p className="text-xs text-muted-foreground">Checks this order with Paystack. If the payment went through, the order is confirmed and the receipt and staff emails are sent.</p>
+              <Button variant="outline" className="w-full">Check payment with Paystack</Button>
+            </form>
+          )}
           {awaitingStorePayment && (
             <form action={markPaidInStore} className="space-y-3 rounded-3xl border-2 border-electric p-5">
               <input type="hidden" name="orderId" value={o.id} />

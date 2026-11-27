@@ -4,13 +4,26 @@ import { formatNaira } from "./utils";
 import { site } from "./config";
 
 /** `to` may be one address or several separated by commas (e.g. ADMIN_NOTIFY_EMAIL="admin@…, sales@…"). */
-export async function sendEmail(to: string, subject: string, html: string) {
+export async function sendEmail(to: string, subject: string, html: string): Promise<{ ok: boolean; error?: string }> {
   const key = process.env.RESEND_API_KEY;
-  if (!key) { console.info(`[email skipped – no RESEND_API_KEY] ${subject} → ${to}`); return; }
-  await fetch("https://api.resend.com/emails", {
-    method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: process.env.EMAIL_FROM ?? `${site.name} <onboarding@resend.dev>`, to: to.split(",").map((t) => t.trim()).filter(Boolean), subject, html }),
-  }).catch((e) => console.error("email failed", e));
+  const recipients = to.split(",").map((t) => t.trim()).filter(Boolean);
+  if (!key) { console.warn(`[email] skipped – RESEND_API_KEY not set: "${subject}"`); return { ok: false, error: "RESEND_API_KEY is not set" }; }
+  if (!recipients.length) return { ok: false, error: "no recipient" };
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ from: process.env.EMAIL_FROM ?? `${site.name} <onboarding@resend.dev>`, to: recipients, subject, html }),
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      console.error(`[email] Resend rejected "${subject}" → ${recipients.length} recipient(s): ${res.status} ${body}`);
+      return { ok: false, error: `Resend ${res.status}: ${body.slice(0, 300)}` };
+    }
+    return { ok: true };
+  } catch (e) {
+    console.error(`[email] failed "${subject}":`, e);
+    return { ok: false, error: (e as Error).message };
+  }
 }
 
 type ReceiptOrder = { reference: string; customer_name: string; total: number; subtotal: number; shipping_fee: number; discount: number; items: { name: string; quantity: number; unit_price: number }[] };

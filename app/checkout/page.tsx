@@ -6,7 +6,7 @@ import { Check, Info, Loader2, Lock, MapPin, Store, Truck } from "lucide-react";
 import { useStore } from "@/components/cart/store";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
-import { DELIVERY_METHODS, FREE_SHIPPING_THRESHOLD, LGAS, NG_PHONE_PATTERN, STATES, normalizeNgPhone, shippingLabel, shippingQuote, type DeliveryMethod } from "@/lib/nigeria";
+import { DELIVERY_METHODS, FREE_SHIPPING_THRESHOLD, LGAS, PHONE_HINT, PHONE_PATTERN, STATES, normalizePhone, shippingLabel, shippingQuote, type DeliveryMethod } from "@/lib/nigeria";
 import { features, site } from "@/lib/config";
 import { cn, formatNaira } from "@/lib/utils";
 import { IN_STORE_HOLD_DAYS } from "@/lib/types";
@@ -117,7 +117,7 @@ export default function CheckoutPage() {
               </div>
               <div className="sm:col-span-2"><Field label="Email address *"><Input type="email" required autoComplete="email" value={customer.email} onChange={(e) => setCustomer({ ...customer, email: e.target.value })} className="mt-1.5" /></Field></div>
               <Field label="Full name *"><Input required minLength={2} autoComplete="name" value={customer.fullName} onChange={(e) => setCustomer({ ...customer, fullName: e.target.value })} className="mt-1.5" /></Field>
-              <Field label="Phone number *" hint="We'll call to confirm delivery or pickup, e.g. 0803 123 4567"><Input type="tel" required pattern={NG_PHONE_PATTERN} inputMode="tel" autoComplete="tel" value={customer.phone} onChange={(e) => setCustomer({ ...customer, phone: e.target.value })} className="mt-1.5" /></Field>
+              <Field label="Phone number *" hint={`We'll call to confirm delivery or pickup. ${PHONE_HINT}`}><Input type="tel" required pattern={PHONE_PATTERN} inputMode="tel" autoComplete="tel" value={customer.phone} onChange={(e) => setCustomer({ ...customer, phone: e.target.value })} className="mt-1.5" /></Field>
               <Button type="submit" size="lg" className="sm:col-span-2" onClick={() => !addr.fullName && setAddr((a) => ({ ...a, fullName: customer.fullName, phone: customer.phone }))}>Continue</Button>
             </form>
           )}
@@ -164,7 +164,7 @@ export default function CheckoutPage() {
                 </div>
               )}
               <Field label="Recipient name *"><Input required value={addr.fullName} onChange={(e) => setAddr({ ...addr, id: undefined, fullName: e.target.value })} autoComplete="shipping name" className="mt-1.5" /></Field>
-              <Field label="Recipient phone *"><Input type="tel" required pattern={NG_PHONE_PATTERN} value={addr.phone} onChange={(e) => setAddr({ ...addr, id: undefined, phone: e.target.value })} autoComplete="shipping tel" className="mt-1.5" /></Field>
+              <Field label="Recipient phone *" hint={PHONE_HINT}><Input type="tel" inputMode="tel" required pattern={PHONE_PATTERN} value={addr.phone} onChange={(e) => setAddr({ ...addr, id: undefined, phone: e.target.value })} autoComplete="shipping tel" className="mt-1.5" /></Field>
               <div className="sm:col-span-2"><Field label="Street address *"><Input required minLength={4} placeholder="House number and street" value={addr.line1} onChange={(e) => setAddr({ ...addr, id: undefined, line1: e.target.value })} autoComplete="shipping address-line1" className="mt-1.5" /></Field></div>
               <Field label="Apartment, estate, floor"><Input value={addr.line2} onChange={(e) => setAddr({ ...addr, id: undefined, line2: e.target.value })} autoComplete="shipping address-line2" className="mt-1.5" /></Field>
               <Field label="Nearest landmark"><Input placeholder="e.g. Opposite GTBank" value={addr.landmark} onChange={(e) => setAddr({ ...addr, id: undefined, landmark: e.target.value })} className="mt-1.5" /></Field>
@@ -186,7 +186,7 @@ export default function CheckoutPage() {
             <div className="space-y-5">
               <h2 className="text-xl font-semibold">Review & pay</h2>
               <dl className="grid gap-4 rounded-2xl bg-cloud p-5 text-sm dark:bg-muted sm:grid-cols-2">
-                <div><dt className="text-muted-foreground">Contact</dt><dd className="font-medium">{customer.fullName}<br />{customer.email}<br />{normalizeNgPhone(customer.phone) ?? customer.phone}</dd></div>
+                <div><dt className="text-muted-foreground">Contact</dt><dd className="font-medium">{customer.fullName}<br />{customer.email}<br />{normalizePhone(customer.phone) ?? customer.phone}</dd></div>
                 {method === "pickup"
                   ? <div><dt className="text-muted-foreground">Pickup</dt><dd className="font-medium">Newcastle showroom<br />{site.addressLine}</dd></div>
                   : <div><dt className="text-muted-foreground">Ship to</dt><dd className="font-medium">{addr.fullName}, {addr.line1}{addr.line2 && `, ${addr.line2}`}<br />{addr.city}, {addr.lga}, {addr.state}</dd></div>}

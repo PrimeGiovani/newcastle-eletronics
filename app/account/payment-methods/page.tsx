@@ -9,7 +9,7 @@ export default async function PaymentMethodsPage() {
   return (
     <div>
       <h1 className="font-display text-2xl font-semibold">Saved payment methods</h1>
-      <p className="mt-2 text-sm text-muted-foreground">Cards are tokenised and stored securely by Paystack — we never see or store your full card number.</p>
+      <p className="mt-2 text-sm text-muted-foreground">Cards are tokenised and stored securely by Paystack, we never see or store your full card number.</p>
       {!data?.length ? <p className="mt-6 rounded-[28px] bg-cloud dark:bg-muted p-10 text-center text-muted-foreground">Cards you pay with are saved automatically for faster checkout.</p> : (
         <ul className="mt-6 grid gap-4 sm:grid-cols-2">
           {data.map((m) => (

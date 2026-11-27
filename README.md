@@ -1,4 +1,4 @@
-# Newcastle Electronics — E-commerce Platform
+# Newcastle Electronics: E-commerce Platform
 
 A premium, mobile-first e-commerce platform for **Newcastle Electronics**, a Nigerian manufacturer of inverter air conditioners, sound systems, kitchen appliances and solar solutions. Only Newcastle-made products are sold.
 

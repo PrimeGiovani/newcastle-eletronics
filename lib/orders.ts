@@ -32,10 +32,20 @@ export async function confirmPayment(reference: string, trx?: PaystackTransactio
     return { ok: false as const, reason: "amount_mismatch" };
   }
 
+  // The webhook and the customer's browser usually arrive within the same second. Claim the
+  // confirmation atomically so only one of them confirms the order and sends the emails.
+  const { data: claimed, error: claimError } = await sb.from("orders").update({ paid_at: tx.paid_at ?? new Date().toISOString() })
+    .eq("id", order.id).eq("status", "pending").is("paid_at", null).select("id");
+  if (claimError) throw claimError;
+  if (!claimed?.length) return { ok: true as const, order, already: true };
+
   const { error } = await sb.rpc("confirm_order_payment", {
     p_order_id: order.id, p_reference: reference, p_amount: tx.amount / 100, p_channel: tx.channel, p_paid_at: tx.paid_at, p_raw: tx,
   });
-  if (error) throw error;
+  if (error) {
+    await sb.from("orders").update({ paid_at: null }).eq("id", order.id).eq("status", "pending"); // release the claim so a retry can finish
+    throw error;
+  }
 
   if (order.user_id && tx.authorization?.reusable) {
     const a = tx.authorization;

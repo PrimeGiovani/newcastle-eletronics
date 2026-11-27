@@ -48,10 +48,25 @@ export function shippingQuote(subtotal: number, method: DeliveryMethod = "standa
 export const shippingLabel = (q: ReturnType<typeof shippingQuote>, method: DeliveryMethod) =>
   method === "pickup" ? "Free pickup" : q.free ? "FREE" : "To be arranged";
 
-/** Accepts 0803…, +234803…, 234803… ; returns E.164 (+234XXXXXXXXXX) or null. */
-export function normalizeNgPhone(input: string): string | null {
-  const d = input.replace(/[\s()-]/g, "");
-  const m = d.match(/^(?:\+?234|0)([789][01]\d{8})$/);
-  return m ? `+234${m[1]}` : null;
+/**
+ * International phone numbers → E.164 ("+<country code><number>").
+ *  • "+44 7700 900123", "0044 7700 900123", "+1 (202) 555-0123" – any country, 8–15 digits
+ *  • Nigerian local format is still accepted: "0803 123 4567" → "+2348031234567", "234803…" → "+234803…"
+ * Returns null if it doesn't look like a real phone number.
+ */
+export function normalizePhone(input: string): string | null {
+  let d = input.trim().replace(/[\s().\-/]/g, "");
+  if (d.startsWith("00")) d = "+" + d.slice(2);
+  if (/^0[789][01]\d{8}$/.test(d)) return "+234" + d.slice(1);           // Nigerian mobile, local format
+  if (/^0[1-9]\d{7,9}$/.test(d)) return "+234" + d.slice(1);            // Nigerian landline, local format
+  if (/^234\d{8,10}$/.test(d)) d = "+" + d;                               // 234… without "+"
+  if (!/^\+[1-9]\d{7,14}$/.test(d)) return null;                           // E.164: 8–15 digits
+  if (d.startsWith("+234") && !/^\+234[1-9]\d{7,9}$/.test(d)) return null; // sanity-check Nigerian numbers
+  return d;
 }
-export const NG_PHONE_PATTERN = "^(\\+?234|0)[789][01]\\d{8}$";
+/** @deprecated use normalizePhone – kept for compatibility */
+export const normalizeNgPhone = normalizePhone;
+/** Browser-side pattern (loose); the server does the precise check above. */
+export const PHONE_PATTERN = "^\\+?[0-9\\s\\(\\)\\.\\-]{7,22}$"; // escaped for the "v" regex flag browsers use for pattern=""
+export const NG_PHONE_PATTERN = PHONE_PATTERN;
+export const PHONE_HINT = "Include your country code if outside Nigeria, e.g. +44 7700 900123";

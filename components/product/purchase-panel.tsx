@@ -20,7 +20,10 @@ export function PurchasePanel({ product }: { product: CartProduct }) {
   const share = async () => {
     const url = window.location.href;
     if (navigator.share) { try { await navigator.share({ title: product.name, url }); } catch { /* cancelled */ } }
-    else { await navigator.clipboard.writeText(url); notify("Link copied to clipboard"); }
+    else {
+      try { await navigator.clipboard.writeText(url); notify("Link copied to clipboard"); }
+      catch { window.prompt("Copy this link:", url); }
+    }
   };
 
   if (enquiryOnly) return (
@@ -31,7 +34,7 @@ export function PurchasePanel({ product }: { product: CartProduct }) {
         <Button variant="outline" size="sm" onClick={() => toggleCompare(product)} aria-pressed={inCompare(product.id)}><GitCompareArrows />Compare</Button>
         <Button variant="outline" size="sm" onClick={share}><Share2 />Share</Button>
       </div>
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 p-3 pr-20 backdrop-blur lg:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pr-20 backdrop-blur lg:hidden">
         <a href={waLink("product", enquiryText(product.name, product.comingSoon))} target="_blank" rel="noopener noreferrer" className="flex h-11 items-center justify-center rounded-full bg-electric font-medium text-white">Contact us</a>
       </div>
     </div>
@@ -67,7 +70,7 @@ export function PurchasePanel({ product }: { product: CartProduct }) {
       </a>
 
       {/* Sticky mobile bar */}
-      <div className="fixed inset-x-0 bottom-0 z-40 flex gap-2 border-t bg-background/95 p-3 pr-20 backdrop-blur lg:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-40 flex gap-2 border-t bg-background/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pr-20 backdrop-blur lg:hidden">
         <Button className="flex-1" disabled={out} onClick={() => add(product, qty)}>Add to Cart</Button>
         <Button className="flex-1" variant="accent" disabled={out} onClick={() => { add(product, qty); router.push("/checkout"); }}>Buy Now</Button>
       </div>

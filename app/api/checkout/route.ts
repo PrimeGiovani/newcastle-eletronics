@@ -85,7 +85,8 @@ export async function POST(req: Request) {
   try {
     const trx = await initializeTransaction({
       email: input.customer.email, amount: t.total, reference,
-      callbackUrl: `${site.url}/checkout/success?reference=${reference}`,
+      // No query string here: Paystack appends ?trxref=…&reference=… itself (a "?" here produced a garbled reference)
+      callbackUrl: `${site.url}/checkout/success`,
       metadata: { order_id: order.id, customer_name: input.customer.fullName, phone: input.customer.phone, custom_fields: [{ display_name: "Order", variable_name: "order_ref", value: reference }] },
     });
     return NextResponse.json({ reference, authorizationUrl: trx.authorization_url });

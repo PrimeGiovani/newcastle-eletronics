@@ -35,7 +35,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
               <Suspense><SortSelect /></Suspense>
             </div>
             {res.items.length ? <ProductGrid products={res.items} priorityFirst={4} /> : (
-              <div className="rounded-[28px] bg-cloud dark:bg-muted p-12 text-center"><p className="text-lg font-semibold">No products match your search</p><p className="mt-2 text-muted-foreground">Try fewer filters, a different brand, or ask us on WhatsApp — we can source it for you.</p></div>
+              <div className="rounded-[28px] bg-cloud dark:bg-muted p-12 text-center"><p className="text-lg font-semibold">No products match your search</p><p className="mt-2 text-muted-foreground">Try fewer filters, a different brand, or ask us on WhatsApp, we can source it for you.</p></div>
             )}
             <Pagination page={res.page} pages={res.pages} basePath="/shop" sp={sp} />
           </div>

@@ -36,7 +36,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     } catch { /* ignore corrupt storage */ }
     setReady(true);
   }, []);
-  useEffect(() => { if (ready) localStorage.setItem(KEY, JSON.stringify({ cart, saved, wishlist, compare })); }, [ready, cart, saved, wishlist, compare]);
+  // try/catch: storage can be full or blocked (e.g. older Safari private mode) – never crash the page
+  useEffect(() => { if (ready) { try { localStorage.setItem(KEY, JSON.stringify({ cart, saved, wishlist, compare })); } catch { /* ignore */ } } }, [ready, cart, saved, wishlist, compare]);
 
   const notify = useCallback((m: string) => { setToast(m); setTimeout(() => setToast(null), 2600); }, []);
   const clamp = (q: number, stock: number) => Math.max(1, Math.min(q, Math.max(stock, 1), 50));

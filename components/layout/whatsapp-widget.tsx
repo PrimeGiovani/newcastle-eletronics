@@ -17,7 +17,7 @@ export function WhatsAppWidget() {
   if (path.startsWith("/admin")) return null;
   const pageUrl = typeof window !== "undefined" ? window.location.href : "";
   return (
-    <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3">
+    <div className="fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-[max(1.25rem,env(safe-area-inset-right))] z-50 flex flex-col items-end gap-3">
       {open && (
         <div role="dialog" aria-label="WhatsApp chat options" className="w-[310px] animate-fade-up overflow-hidden rounded-[24px] bg-white/95 shadow-lift ring-1 ring-black/5 backdrop-blur-xl dark:bg-card">
           <div className="border-b p-5">

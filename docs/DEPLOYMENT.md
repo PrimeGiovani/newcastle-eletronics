@@ -1,4 +1,4 @@
-# Deployment Guide — Supabase · Paystack · Vercel · Cloudflare
+# Deployment Guide: Supabase · Paystack · Vercel · Cloudflare
 
 Follow the steps in order. The site runs without any keys (built-in catalogue from your product sheet, no checkout). Each section below switches on more of the platform.
 
@@ -8,7 +8,7 @@ Follow the steps in order. The site runs without any keys (built-in catalogue fr
 
 1. Create a project at <https://supabase.com>. Choose a region close to Nigeria (**eu-west-2 London** or **eu-central-1 Frankfurt**).
 2. **Run the migrations** (in order):
-   - Follow **[SUPABASE-IMPORT.md](SUPABASE-IMPORT.md)**: run `0001`–`0004` in `supabase/migrations/`, then `seed.sql` (your 76 products), in the SQL Editor.
+   - Follow **[SUPABASE-IMPORT.md](SUPABASE-IMPORT.md)**: run `0001`–`0005` in `supabase/migrations/`, then `seed.sql` (your 76 products), in the SQL Editor.
    - Or use the CLI: `npx supabase link --project-ref <ref> && npx supabase db push`, then run `seed.sql` in the editor.
 3. **Copy your keys** from Project Settings → API into `.env.local` and Vercel:
    - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
@@ -34,20 +34,22 @@ Follow the steps in order. The site runs without any keys (built-in catalogue fr
 1. Create and verify your business at <https://dashboard.paystack.com>. Live payments require business verification (CAC documents).
 2. Go to Settings → API Keys & Webhooks:
    - Copy the secret key into `PAYSTACK_SECRET_KEY` and the public key into `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY`.
-   - **Webhook URL:** `https://www.newcastleelectronics.com/api/paystack/webhook`
-   - Callback URL: leave it blank. The app sends the callback URL with each transaction.
+   - **Webhook URL:** `https://www.newcastleelectronics.com/api/paystack/webhook`. Test mode and Live mode each have their own webhook field: fill in the one that matches your keys.
+   - Callback URL: leave it blank. The app sends the callback URL (`NEXT_PUBLIC_SITE_URL/checkout/success`) with each transaction.
 3. Go to Settings → Preferences → Payment channels and enable Card, Bank Transfer, USSD, QR, Bank and Mobile Money.
 4. **Test mode:** use `sk_test_…` keys and Paystack's test card `4084 0840 8408 4081` (CVV 408, any future expiry, PIN 0000, OTP 123456).
 5. **How a payment flows:**
    1. The checkout calls `POST /api/checkout`. It reloads prices and stock from the database, computes totals on the server, inserts a `pending` order and initialises the Paystack transaction.
    2. The customer pays on Paystack's hosted page, using any of the enabled channels.
-   3. Paystack calls the webhook (HMAC-SHA512 signature verified) **and** redirects the customer to `/checkout/success`. Both call `confirmPayment()`. That function re-verifies with the Paystack API, checks the amount and currency, and runs the `confirm_order_payment` SQL function. That function is atomic and idempotent: it decrements stock, records the payment, logs an order event and counts the coupon use. Finally, the email receipt is sent.
-   4. Refunds are issued in the Paystack dashboard. The `refund.processed` webhook then marks the order as refunded.
+   3. Paystack calls the webhook (HMAC-SHA512 signature verified) **and** redirects the customer to `/checkout/success`. Both call `confirmPayment()`. That function re-verifies with the Paystack API, checks the amount and currency, and runs the `confirm_order_payment` SQL function. That function is atomic and idempotent: it decrements stock, records the payment, logs an order event and counts the coupon use. Whichever arrives first sends the receipt and the staff alert; the other does nothing, so nobody gets duplicate emails.
+   4. Safety nets: the daily cron asks Paystack about every order still unpaid after 24 hours and confirms it if the customer did pay, and staff can click **Check payment with Paystack** on any unpaid order in Admin → Orders.
+   5. Refunds are issued in the Paystack dashboard. The `refund.processed` webhook then marks the order as refunded.
 
 ## 3. Email receipts and notifications (optional)
 
 1. Create an account at <https://resend.com> and verify your domain (add the DNS records in Cloudflare).
-2. Set `RESEND_API_KEY`, `EMAIL_FROM` and `ADMIN_NOTIFY_EMAIL`.
+2. Set `RESEND_API_KEY`, `EMAIL_FROM` (an address on your verified domain) and `ADMIN_NOTIFY_EMAIL` (several addresses separated by commas).
+3. Redeploy, then send a test: `https://YOUR-DOMAIN/api/health?token=YOUR_CRON_SECRET&testEmail=1`.
 
 Without these, emails are skipped and logged to the server console.
 
@@ -90,6 +92,20 @@ Open `https://YOUR-DOMAIN/api/health?token=YOUR_CRON_SECRET`. It reports, for ev
 Key values are never shown. `"paymentsReady": true` means checkout will work.
 
 > Paystack has **no separate webhook secret**. Webhooks are signed with your `PAYSTACK_SECRET_KEY`, so you don't need a `PAYSTACK_WEBHOOK_SECRET` variable.
+
+## Troubleshooting payments and emails
+
+**A customer paid but saw "We couldn't confirm your payment"**
+1. Open the order in Admin → Orders and click **Check payment with Paystack**. If Paystack has the payment, the order becomes Paid, stock is deducted and the receipt and staff alert are sent.
+2. Check `NEXT_PUBLIC_SITE_URL` is exactly `https://www.newcastleelectronics.com` (no trailing slash). Paystack sends customers back to this address. `/api/health` warns if it doesn't match the site.
+3. Check the webhook URL is set in Paystack for the mode you're using (Test or Live). Paystack → Settings → API Keys & Webhooks.
+
+**Staff alerts (new order emails) don't arrive**
+1. Open `/api/health?token=YOUR_CRON_SECRET&testEmail=1`. `TEST_EMAIL` shows Resend's exact answer.
+2. "domain is not verified": verify `newcastleelectronics.com` in Resend → Domains and make `EMAIL_FROM` use that domain.
+3. "sent" but nothing arrives: look in spam, then in Resend → Emails (it shows Delivered, Bounced or Complained for each address). A bounce usually means that mailbox doesn't exist yet at your email host.
+4. You changed a variable in Vercel? Redeploy. Variables only apply to new deployments.
+5. Staff alerts go out when an order is **paid** online or **reserved** for pay at store. Checkouts that were abandoned on Paystack don't send alerts.
 
 ## 6. Go-live checklist
 

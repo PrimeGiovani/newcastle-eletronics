@@ -1,5 +1,5 @@
-"""Studio-style SVG product renders on #F5F5F7 (light) / #1D1D1F (dark) → public/products/.
-Placeholders until real photography is uploaded via Admin → Products."""
+"""Product illustrations on #F5F5F7 (light) / #1D1D1F (dark) → public/products/.
+Replace with product photography via Admin → Products."""
 import os, math
 OUT = os.path.join(os.path.dirname(__file__), "..", "public", "products")
 os.makedirs(OUT, exist_ok=True)

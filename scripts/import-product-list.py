@@ -6,7 +6,7 @@ Converts the Newcastle product spreadsheet (exported as CSV) into lib/products-d
     node --experimental-strip-types scripts/generate-seed.ts      # then rebuild supabase/seed.sql
 
 Business rules (best sellers, sale items, new arrivals, coming soon) live in the CONFIG block below.
-Descriptions/specs are generated from the model name – review them in Admin → Products.
+Descriptions and specs are built from the model name; review them in Admin → Products.
 """
 import csv, json, re, sys, os
 
@@ -74,6 +74,54 @@ for r in rows:
     if not b and key in SECTION_MAP: section = key; continue
     if section is None: continue
     products.append((section, a, b))
+
+def describe(sub, sp, short):
+    """Plain, factual product copy written per product type (only uses facts from the sheet)."""
+    g = lambda k, d="": sp.get(k, d)
+    first = short[0].upper() + short[1:]
+    if sub in ("1hp-split-unit", "1-5hp-split-unit", "2hp-split-unit"):
+        return (f"The Newcastle {g('Capacity')} split unit mounts neatly on the wall and comes in a {g('Colour').lower()} finish. "
+                f"Its {g('Compressor').lower()} compressor adjusts output to hold your chosen temperature, which helps keep running costs down. "
+                "Ask us about installation by our trusted installers.")
+    if sub == "standing-units":
+        shape = "round" if "round" in g("Type") else "block"
+        cap = g('Capacity').replace(" Tons", "-ton")
+        return (f"A {cap} floor-standing air conditioner with a {shape} design, finished in {g('Colour').lower()}. "
+                f"Built for larger spaces such as living rooms, offices, shops and halls. Compressor: {g('Compressor').lower()}.")
+    if sub == "gas-hobs":
+        top = g("Top").lower().replace("tempered glass", "a tempered glass top").replace("stainless steel (black)", "a black stainless steel top").replace("stainless steel (silver)", "a silver stainless steel top")
+        bits = [f"{g('Burners')} burners ({g('Configuration').lower()})", top]
+        if "Flip-up" in g("Lid"): bits.append("a flip-up glass lid that covers the burners when not in use")
+        if g("Timer") == "Yes": bits.append("a built-in timer")
+        if g("Flame safety device") == "Yes": bits.append("a flame safety device")
+        return f"This {g('Type').lower()} has " + ", ".join(bits[:-1]) + (" and " + bits[-1] if len(bits) > 1 else bits[0]) + ". Gas connection can be arranged with our trusted installers."
+    if sub == "range-hoods":
+        f = g("Features")
+        return f"A {g('Width')} range hood in {g('Colour').lower()} to keep cooking smoke and smells out of your kitchen." + (f" Features: {f.lower()}." if f else "")
+    if sub == "microwaves":
+        kind = "built-in" if "Built-in" in g("Type") else "countertop"
+        return f"A 21-litre {kind} microwave for reheating, defrosting and everyday cooking."
+    if sub == "ovens":
+        return f"A built-in cabinet oven ({g('Fuel').lower()})" + (" with soft-touch controls" if g("Controls") else "") + ", designed to fit neatly into your kitchen units."
+    if sub == "small-appliances":
+        return {"Blender": "A countertop blender for smoothies, soups, sauces and pepper.", "Air Fryer": "An air fryer for crisp results with little or no oil.",
+                "Charcoal Stove": "A sturdy charcoal stove for outdoor cooking and grilling."}.get(g("Type"), first)
+    if sub == "home-theatre":
+        return "A home theatre multimedia speaker system for films, music and games at home."
+    if sub == "sound-bars":
+        return "A slim soundbar that sits below your TV for clearer dialogue and fuller sound."
+    if sub == "boom-box":
+        return "A portable boom box with MP3 playback for music at home or on the move."
+    solar = {
+        "portable-power-stations": lambda: f"A portable power station with {g('Output power')} output and {g('Battery capacity')} of battery storage, for backup power at home, in the shop or on the go.",
+        "all-in-one-ess": lambda: f"An all-in-one energy storage system combining a {g('Inverter power')} inverter with {g('Battery capacity')} of battery storage in one unit.",
+        "lithium-batteries": lambda: (f"A {g('Capacity')}, {g('Voltage')} {g('Amp-hours')} lithium battery for solar and backup power systems." if g("Capacity") else "A lithium battery for solar and backup power systems."),
+        "inverters": lambda: f"A {g('Rated power')} solar inverter for {g('Battery voltage')} battery systems.",
+        "solar-panels": lambda: f"A {g('Peak power')} monocrystalline solar panel ({g('Voltage')}) built with 182mm cells.",
+        "street-lights": lambda: f"A {g('Power')} solar street light for estates, compounds, roads and car parks.",
+    }
+    if sub in solar: return solar[sub]() + " Coming soon: contact us to enquire or book ahead."
+    return first
 
 def parse(section, raw, price_raw):
     top, sub = SECTION_MAP[section]
@@ -192,7 +240,7 @@ def parse(section, raw, price_raw):
     return dict(
         slug=SLUG_OVERRIDES.get(model_code) or slugify(full_name.replace("Newcastle ", "newcastle ")), sku=sku, name=full_name, categorySlug=sub, top=top,
         price=final_price or 0, compareAtPrice=compare, stock=DEFAULT_STOCK,
-        shortDescription=short[0].upper() + short[1:], description=f"{short[0].upper() + short[1:]} Designed and manufactured by Newcastle — over 30 years of trusted electronics for Nigerian homes and businesses.",
+        shortDescription=short[0].upper() + short[1:], description=describe(sub, specs, short),
         highlights=highlights[:5], specs={**specs, "Model": model_disp}, warranty="Newcastle manufacturer warranty – contact us for terms",
         isFeatured=model_code in FEATURED_MODELS, isBestSeller=model_code in BEST_SELLER_MODELS,
         isNew=sub == "gas-hobs" and edition != "OLD", comingSoon=is_solar, priceOnRequest=is_solar or not price,
@@ -218,7 +266,7 @@ if os.path.exists(REVIEWS_SRC):
         reviews.append(dict(sku=sku, author=(r.get("author") or "Customer").strip(), rating=rating, title=(r.get("title") or "").strip(),
                             body=body, date=(r.get("date") or "").strip() or "2026-01-01", verified=(r.get("verified_purchase") or "").strip().lower() in ("yes", "y", "true", "1")))
 open(os.path.join(ROOT, "lib", "reviews-data.ts"), "w").write(
-    "/* AUTO-GENERATED by scripts/import-product-list.py from data/reviews.csv – do not edit by hand. */\n"
+    "/* Built from data/reviews.csv by scripts/import-product-list.py. */\n"
     "export type SheetReview = { sku: string; author: string; rating: number; title: string; body: string; date: string; verified: boolean };\n"
     "export const sheetReviews: SheetReview[] = " + json.dumps(reviews, indent=1, ensure_ascii=False) + ";\n")
 print(f"{len(reviews)} reviews → lib/reviews-data.ts")
@@ -228,7 +276,7 @@ for k in ("slug", "sku"):
     for p in out:
         if p[k] in seen: raise SystemExit(f"Duplicate {k}: {p[k]}  ({seen[p[k]]}  vs  {p['sheetRow']})")
         seen[p[k]] = p["sheetRow"]
-ts = "/* AUTO-GENERATED by scripts/import-product-list.py from data/product-list.csv – do not edit by hand. */\n"
+ts = "/* Built from data/product-list.csv by scripts/import-product-list.py. Edit the sheet, then re-run the script. */\n"
 ts += "export type SheetProduct = { slug: string; sku: string; name: string; categorySlug: string; top: string; price: number; compareAtPrice: number | null; stock: number; shortDescription: string; description: string; highlights: string[]; specs: Record<string, string>; warranty: string; isFeatured: boolean; isBestSeller: boolean; isNew: boolean; comingSoon: boolean; priceOnRequest: boolean; installable: boolean; art: string; sheetRow: string; sheetPrice: string };\n"
 ts += "export const sheetProducts: SheetProduct[] = " + json.dumps(out, indent=1, ensure_ascii=False) + ";\n"
 open(OUT, "w").write(ts)

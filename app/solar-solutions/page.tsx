@@ -15,7 +15,7 @@ export const metadata = buildMetadata({ title: "Solar Solutions – Panels, Lith
 
 const faqs = [
   { q: "What size inverter do I need to run an AC in Nigeria?", a: "A 1HP inverter AC typically needs at least a 3.5kVA hybrid inverter with 5kWh+ of lithium storage for night use. Use our solar calculator for a personalised estimate." },
-  { q: "How long do lithium solar batteries last?", a: "Quality LiFePO4 batteries are rated for 6,000+ cycles — roughly 10–15 years of daily use, far longer than lead-acid batteries." },
+  { q: "How long do lithium solar batteries last?", a: "Quality LiFePO4 batteries are rated for 6,000+ cycles, roughly 10–15 years of daily use, far longer than lead-acid batteries." },
   { q: "Do you install solar systems outside Lagos?", a: "Yes. We supply and install across Nigeria including Abuja, Port Harcourt, Ibadan and Kano." },
   { q: "Can I pay for a solar system in instalments?", a: "Speak with our team about staged payment options for larger installations." },
 ];

@@ -3,7 +3,6 @@ import { features, site } from "@/lib/config";
 
 export const metadata = buildMetadata({ title: "Privacy Policy", description: "How Newcastle Electronics collects, uses and protects your personal data, in line with the Nigeria Data Protection Act 2023.", path: "/privacy" });
 
-/** DRAFT – have this reviewed by a lawyer / your Data Protection Officer before relying on it. */
 export default function PrivacyPage() {
   const h = "mt-10 text-xl font-semibold tracking-tight";
   const p = "mt-2 leading-relaxed text-ink-muted dark:text-white/70";

@@ -29,7 +29,7 @@ export function Reviews({ productId, reviews, rating, count }: { productId: stri
         <ReviewForm productId={productId} />
       </div>
       <ul className="divide-y">
-        {reviews.length === 0 && <li className="py-6 text-muted-foreground">No reviews yet — be the first to share your experience.</li>}
+        {reviews.length === 0 && <li className="py-6 text-muted-foreground">No reviews yet. Be the first to share your experience.</li>}
         {reviews.map((r) => (
           <li key={r.id} className="py-6 first:pt-0">
             <div className="flex flex-wrap items-center gap-2">
