@@ -41,10 +41,38 @@ Supabase's built-in email sender is for testing only. **Unless you configure a c
 
 > You can reuse the same Resend API key as `RESEND_API_KEY` in Vercel. The website then also emails order receipts.
 
-### A4. Test it
+### A4. Email templates (required, so links work from any device)
+By default, Supabase's email links only work in the **same browser** where the customer clicked "Forgot password" or "Register". Opened from the Gmail or Outlook app, another browser or a phone, they fail with "Could not sign you in". Change each template's link so it works everywhere.
+
+Supabase → **Authentication → Emails → Templates**:
+
+**Reset password.** Replace the whole message with:
+```html
+<h2>Reset your password</h2>
+<p>Click the button below to choose a new password for your Newcastle Electronics account.</p>
+<p><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery">Reset my password</a></p>
+<p>If you didn't ask for this, you can ignore this email.</p>
+```
+
+**Confirm signup.** Replace the whole message with:
+```html
+<h2>Confirm your email</h2>
+<p>Welcome to Newcastle Electronics! Click below to activate your account.</p>
+<p><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email">Confirm my email</a></p>
+```
+
+**Change email address** (optional): use the same link, with `type=email_change`.
+
+Click **Save** on each template.
+
+Make sure **Site URL** (A1) is exactly `https://www.newcastleelectronics.com`, **with** `www` and no trailing slash. `{{ .SiteURL }}` in the templates comes from it.
+
+> Always open the **newest** email. Requesting a new link makes older ones stop working, and each link works only once.
+
+### A5. Test it
 1. Open `/auth/login`, choose **Register**, and use an email that isn't in your Supabase team.
 2. Click the confirmation link in the email. You should land on `/account`.
-3. Sign out. Then test **Forgot password?**.
+3. Sign out. Then test **Forgot password?**: open the email **on your phone** and tap **Reset my password**. You should be asked for a new password, then land in My account.
 
 ---
 
